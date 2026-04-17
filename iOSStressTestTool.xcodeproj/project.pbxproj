@@ -1,0 +1,615 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		/* App Sources */
+		A10001 /* iOSStressTestToolApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001; };
+		A10002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002; };
+
+		/* Models */
+		A10010 /* TestEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10010; };
+		A10011 /* TestTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10011; };
+		A10012 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10012; };
+		A10013 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10013; };
+		A10014 /* TestReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10014; };
+
+		/* Utils */
+		A10020 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020; };
+		A10021 /* ProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10021; };
+		A10022 /* ImageCompareUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10022; };
+		A10023 /* CoordinateAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10023; };
+
+		/* Services */
+		A10030 /* DeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10030; };
+		A10031 /* ScreenshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10031; };
+		A10032 /* EventExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10032; };
+		A10033 /* ImageRecognitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10033; };
+		A10034 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10034; };
+		A10035 /* RecordingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10035; };
+		A10036 /* ReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10036; };
+
+		/* ViewModels */
+		A10040 /* TaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10040; };
+		A10041 /* DeviceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10041; };
+		A10042 /* ExecutionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10042; };
+		A10043 /* RecordingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10043; };
+
+		/* Views */
+		A10050 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10050; };
+		A10051 /* TaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10051; };
+		A10052 /* EventEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10052; };
+		A10053 /* DeviceManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10053; };
+		A10054 /* ScreenPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10054; };
+		A10055 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10055; };
+		A10056 /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10056; };
+		A10057 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10057; };
+
+		/* Resources */
+		A10060 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10060; };
+
+		/* UITest Sources */
+		A10070 /* StressTestRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10070; };
+		A10071 /* EventPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10071; };
+		A10072 /* TestRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10072; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C10001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = P10001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = T10001;
+			remoteInfo = iOSStressTestTool;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		/* App */
+		B10001 /* iOSStressTestToolApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSStressTestToolApp.swift; sourceTree = "<group>"; };
+		B10002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+
+		/* Models */
+		B10010 /* TestEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestEvent.swift; sourceTree = "<group>"; };
+		B10011 /* TestTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestTask.swift; sourceTree = "<group>"; };
+		B10012 /* DeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfo.swift; sourceTree = "<group>"; };
+		B10013 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		B10014 /* TestReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestReport.swift; sourceTree = "<group>"; };
+
+		/* Utils */
+		B10020 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		B10021 /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
+		B10022 /* ImageCompareUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCompareUtils.swift; sourceTree = "<group>"; };
+		B10023 /* CoordinateAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoordinateAdapter.swift; sourceTree = "<group>"; };
+
+		/* Services */
+		B10030 /* DeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceService.swift; sourceTree = "<group>"; };
+		B10031 /* ScreenshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotService.swift; sourceTree = "<group>"; };
+		B10032 /* EventExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventExecutor.swift; sourceTree = "<group>"; };
+		B10033 /* ImageRecognitionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRecognitionEngine.swift; sourceTree = "<group>"; };
+		B10034 /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
+		B10035 /* RecordingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingService.swift; sourceTree = "<group>"; };
+		B10036 /* ReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportGenerator.swift; sourceTree = "<group>"; };
+
+		/* ViewModels */
+		B10040 /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
+		B10041 /* DeviceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceViewModel.swift; sourceTree = "<group>"; };
+		B10042 /* ExecutionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionViewModel.swift; sourceTree = "<group>"; };
+		B10043 /* RecordingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingViewModel.swift; sourceTree = "<group>"; };
+
+		/* Views */
+		B10050 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		B10051 /* TaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListView.swift; sourceTree = "<group>"; };
+		B10052 /* EventEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditorView.swift; sourceTree = "<group>"; };
+		B10053 /* DeviceManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceManagerView.swift; sourceTree = "<group>"; };
+		B10054 /* ScreenPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenPreviewView.swift; sourceTree = "<group>"; };
+		B10055 /* RecordingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingView.swift; sourceTree = "<group>"; };
+		B10056 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
+		B10057 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+
+		/* Resources */
+		B10060 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B10061 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B10062 /* iOSStressTestTool.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iOSStressTestTool.entitlements; sourceTree = "<group>"; };
+
+		/* UITests */
+		B10070 /* StressTestRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StressTestRunner.swift; sourceTree = "<group>"; };
+		B10071 /* EventPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPlayer.swift; sourceTree = "<group>"; };
+		B10072 /* TestRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRecorder.swift; sourceTree = "<group>"; };
+		B10073 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+
+		/* Products */
+		E10001 /* iOSStressTestTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSStressTestTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E10002 /* iOSStressTestUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iOSStressTestUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F10001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		G10000 = {
+			isa = PBXGroup;
+			children = (
+				G10001 /* iOSStressTestTool */,
+				G10009 /* iOSStressTestUITests */,
+				G10099 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		G10001 /* iOSStressTestTool */ = {
+			isa = PBXGroup;
+			children = (
+				G10002 /* App */,
+				G10003 /* Models */,
+				G10004 /* Utils */,
+				G10005 /* Services */,
+				G10006 /* ViewModels */,
+				G10007 /* Views */,
+				G10008 /* Resources */,
+				B10061 /* Info.plist */,
+				B10062 /* iOSStressTestTool.entitlements */,
+			);
+			path = iOSStressTestTool;
+			sourceTree = "<group>";
+		};
+		G10002 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B10001 /* iOSStressTestToolApp.swift */,
+				B10002 /* AppDelegate.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		G10003 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B10010 /* TestEvent.swift */,
+				B10011 /* TestTask.swift */,
+				B10012 /* DeviceInfo.swift */,
+				B10013 /* AppConfig.swift */,
+				B10014 /* TestReport.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		G10004 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				B10020 /* Logger.swift */,
+				B10021 /* ProcessRunner.swift */,
+				B10022 /* ImageCompareUtils.swift */,
+				B10023 /* CoordinateAdapter.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		G10005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B10030 /* DeviceService.swift */,
+				B10031 /* ScreenshotService.swift */,
+				B10032 /* EventExecutor.swift */,
+				B10033 /* ImageRecognitionEngine.swift */,
+				B10034 /* OCREngine.swift */,
+				B10035 /* RecordingService.swift */,
+				B10036 /* ReportGenerator.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		G10006 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				B10040 /* TaskViewModel.swift */,
+				B10041 /* DeviceViewModel.swift */,
+				B10042 /* ExecutionViewModel.swift */,
+				B10043 /* RecordingViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		G10007 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B10050 /* MainView.swift */,
+				B10051 /* TaskListView.swift */,
+				B10052 /* EventEditorView.swift */,
+				B10053 /* DeviceManagerView.swift */,
+				B10054 /* ScreenPreviewView.swift */,
+				B10055 /* RecordingView.swift */,
+				B10056 /* ReportView.swift */,
+				B10057 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		G10008 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B10060 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		G10009 /* iOSStressTestUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B10070 /* StressTestRunner.swift */,
+				B10071 /* EventPlayer.swift */,
+				B10072 /* TestRecorder.swift */,
+				B10073 /* Info.plist */,
+			);
+			path = iOSStressTestUITests;
+			sourceTree = "<group>";
+		};
+		G10099 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E10001 /* iOSStressTestTool.app */,
+				E10002 /* iOSStressTestUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		T10001 /* iOSStressTestTool */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = X10003;
+			buildPhases = (
+				S10001 /* Sources */,
+				F10001 /* Frameworks */,
+				R10001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = iOSStressTestTool;
+			productName = iOSStressTestTool;
+			productReference = E10001 /* iOSStressTestTool.app */;
+			productType = "com.apple.product-type.application";
+		};
+		T10002 /* iOSStressTestUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = X10006;
+			buildPhases = (
+				S10002 /* Sources */,
+				F10002 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D10001 /* PBXTargetDependency */,
+			);
+			name = iOSStressTestUITests;
+			productName = iOSStressTestUITests;
+			productReference = E10002 /* iOSStressTestUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		P10001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					T10001 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					T10002 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = T10001;
+					};
+				};
+			};
+			buildConfigurationList = X10001;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "zh-Hans";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				"zh-Hans",
+				en,
+				Base,
+			);
+			mainGroup = G10000;
+			productRefGroup = G10099 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				T10001 /* iOSStressTestTool */,
+				T10002 /* iOSStressTestUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R10001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10060 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		S10001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10001 /* iOSStressTestToolApp.swift in Sources */,
+				A10002 /* AppDelegate.swift in Sources */,
+				A10010 /* TestEvent.swift in Sources */,
+				A10011 /* TestTask.swift in Sources */,
+				A10012 /* DeviceInfo.swift in Sources */,
+				A10013 /* AppConfig.swift in Sources */,
+				A10014 /* TestReport.swift in Sources */,
+				A10020 /* Logger.swift in Sources */,
+				A10021 /* ProcessRunner.swift in Sources */,
+				A10022 /* ImageCompareUtils.swift in Sources */,
+				A10023 /* CoordinateAdapter.swift in Sources */,
+				A10030 /* DeviceService.swift in Sources */,
+				A10031 /* ScreenshotService.swift in Sources */,
+				A10032 /* EventExecutor.swift in Sources */,
+				A10033 /* ImageRecognitionEngine.swift in Sources */,
+				A10034 /* OCREngine.swift in Sources */,
+				A10035 /* RecordingService.swift in Sources */,
+				A10036 /* ReportGenerator.swift in Sources */,
+				A10040 /* TaskViewModel.swift in Sources */,
+				A10041 /* DeviceViewModel.swift in Sources */,
+				A10042 /* ExecutionViewModel.swift in Sources */,
+				A10043 /* RecordingViewModel.swift in Sources */,
+				A10050 /* MainView.swift in Sources */,
+				A10051 /* TaskListView.swift in Sources */,
+				A10052 /* EventEditorView.swift in Sources */,
+				A10053 /* DeviceManagerView.swift in Sources */,
+				A10054 /* ScreenPreviewView.swift in Sources */,
+				A10055 /* RecordingView.swift in Sources */,
+				A10056 /* ReportView.swift in Sources */,
+				A10057 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		S10002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10070 /* StressTestRunner.swift in Sources */,
+				A10071 /* EventPlayer.swift in Sources */,
+				A10072 /* TestRecorder.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D10001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = T10001 /* iOSStressTestTool */;
+			targetProxy = C10001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		/* Project Debug */
+		X10001D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		/* Project Release */
+		X10001R /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		/* App Target Debug */
+		X10003D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iOSStressTestTool/iOSStressTestTool.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iOSStressTestTool/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026. All rights reserved.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stresstesttool.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		/* App Target Release */
+		X10003R /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iOSStressTestTool/iOSStressTestTool.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iOSStressTestTool/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026. All rights reserved.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stresstesttool.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		/* UITests Target Debug */
+		X10006D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iOSStressTestUITests/Info.plist;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stresstesttool.ios.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iOSStressTestTool.app/Contents/MacOS/iOSStressTestTool";
+			};
+			name = Debug;
+		};
+		/* UITests Target Release */
+		X10006R /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iOSStressTestUITests/Info.plist;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stresstesttool.ios.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iOSStressTestTool.app/Contents/MacOS/iOSStressTestTool";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		X10001 /* Build configuration list for PBXProject */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				X10001D /* Debug */,
+				X10001R /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		X10003 /* Build configuration list for PBXNativeTarget "iOSStressTestTool" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				X10003D /* Debug */,
+				X10003R /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		X10006 /* Build configuration list for PBXNativeTarget "iOSStressTestUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				X10006D /* Debug */,
+				X10006R /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = P10001 /* Project object */;
+}
