@@ -43,16 +43,17 @@ P3 SMOKE OK
 ## 2. P4 UI 接入（主体完成）
 
 - **事件编辑器**：点击/双击/长按增加「控件定位」区，支持策略、匹配值、超时、匹配序号，并提示失败回退坐标。
+- **控件检查器**：从事件编辑器打开，拉取 `mobile: source` 树，可搜索、点选节点，自动生成 accessibility id / label / predicate，并回填坐标兜底。
 - **设置页**：环境检测改为真实自检（Developer mode / xcode-select / Xcode / Appium / XCUITest driver），失败项直接给出可复制命令；新增「Appium 服务」启停与日志入口。
 - **屏幕预览**：点击/长按/滑动/Home/音量/锁屏改为 Appium 优先，失败回退 CLI；状态栏不再显示误导性的「真机需 go-ios UI 后端」。
 - **报告页**：事件行展示实际策略。
 - **服务退出**：`AppiumServerManager.stop()` 递归清理子进程（xcodebuild / WDA runner），已验证 smoke 后无残留。
 
 ### 未完成
-- 元素检查器（`mobile: source` 树 + 点选生成 locator）尚未做，目前需要手动填 locator 或借助 Appium Inspector。
 - 预览第一次点击会触发建会话（约 30 秒），状态栏有「连接自动化会话...」提示；后续可在选中设备时预热。
 - 设备管理页未展示会话状态。
 - `typeText`、`launchApp`、`terminateApp` 已实现但未纳入 smoke。
+- 控件检查器的解析/点选逻辑已编译通过，但未做人工 UI 点选验证。
 
 ## 3. P5 真机 / iOS 27（阻塞）
 
@@ -100,6 +101,7 @@ simctl runtimes → iOS 26.4 / 26.5
 - `launchApp` / `terminateApp` 的 Appium 路径验证。
 - 长按、双击、滑动在 Appium 路径上的行为验证（代码已接入，smoke 只覆盖点击）。
 - Locator 各策略（accessibility id / label / class chain / xpath）逐个验证。
+- 控件检查器的人工 UI 点选验证。
 - 单元测试 target（当前只有集成 smoke）。
 
 ## 5. 下一步

@@ -69,6 +69,7 @@
 		A10094 /* AutomationBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10094; };
 		A10095 /* HostEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10095; };
 		A10096 /* Locator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10096; };
+		A10097 /* ElementInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10097; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -155,6 +156,7 @@
 		B10094 /* AutomationBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationBackend.swift; sourceTree = "<group>"; };
 		B10095 /* HostEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostEnvironment.swift; sourceTree = "<group>"; };
 		B10096 /* Locator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Locator.swift; sourceTree = "<group>"; };
+		B10097 /* ElementInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElementInspectorView.swift; sourceTree = "<group>"; };
 
 		/* Products */
 		E10001 /* iOSStressTestTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSStressTestTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -297,6 +299,7 @@
 				B10055 /* RecordingView.swift */,
 				B10056 /* ReportView.swift */,
 				B10057 /* SettingsView.swift */,
+				B10097 /* ElementInspectorView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -505,6 +508,7 @@
 				A10094 /* AutomationBackend.swift in Sources */,
 				A10095 /* HostEnvironment.swift in Sources */,
 				A10096 /* Locator.swift in Sources */,
+				A10097 /* ElementInspectorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

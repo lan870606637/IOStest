@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - 事件编辑器
 struct EventEditorView: View {
     @State var event: TestEvent
+    @State private var showInspector = false
     let onSave: (TestEvent) -> Void
     let onCancel: () -> Void
 
@@ -93,6 +94,18 @@ struct EventEditorView: View {
             }
         }
         .frame(width: 550, height: 500)
+        .sheet(isPresented: $showInspector) {
+            if let device = DeviceService.shared.selectedDevice {
+                ElementInspectorView(deviceUDID: device.udid) { locator, rect in
+                    event.locator = locator
+                    if event.x == nil { event.x = Int(rect.midX) }
+                    if event.y == nil { event.y = Int(rect.midY) }
+                }
+            } else {
+                Text("请先在设备管理中选择设备")
+                    .padding()
+            }
+        }
     }
 
     // MARK: - 点击参数
@@ -405,6 +418,12 @@ struct EventEditorView: View {
         GroupBox("控件定位（优先于坐标）") {
             VStack(alignment: .leading, spacing: 10) {
                 Toggle("使用控件定位", isOn: locatorEnabled)
+
+                HStack {
+                    Spacer()
+                    Button("从当前页面选择...") { showInspector = true }
+                        .disabled(DeviceService.shared.selectedDevice == nil)
+                }
 
                 if event.locator != nil {
                     HStack {
