@@ -60,6 +60,15 @@
 
 		/* iOS Host Sources */
 		A10080 /* IOSStressTestHostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10080; };
+
+		/* Automation Sources */
+		A10090 /* DeviceSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10090; };
+		A10091 /* AppiumServerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10091; };
+		A10092 /* AppiumClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10092; };
+		A10093 /* AppiumBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10093; };
+		A10094 /* AutomationBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10094; };
+		A10095 /* HostEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10095; };
+		A10096 /* Locator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10096; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -138,6 +147,15 @@
 		B10080 /* IOSStressTestHostApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSStressTestHostApp.swift; sourceTree = "<group>"; };
 		B10081 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 
+		/* Automation */
+		B10090 /* DeviceSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSessionManager.swift; sourceTree = "<group>"; };
+		B10091 /* AppiumServerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppiumServerManager.swift; sourceTree = "<group>"; };
+		B10092 /* AppiumClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppiumClient.swift; sourceTree = "<group>"; };
+		B10093 /* AppiumBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppiumBackend.swift; sourceTree = "<group>"; };
+		B10094 /* AutomationBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationBackend.swift; sourceTree = "<group>"; };
+		B10095 /* HostEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostEnvironment.swift; sourceTree = "<group>"; };
+		B10096 /* Locator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Locator.swift; sourceTree = "<group>"; };
+
 		/* Products */
 		E10001 /* iOSStressTestTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSStressTestTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E10002 /* iOSStressTestUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iOSStressTestUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -212,6 +230,7 @@
 				B10012 /* DeviceInfo.swift */,
 				B10013 /* AppConfig.swift */,
 				B10014 /* TestReport.swift */,
+				B10096 /* Locator.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -224,6 +243,7 @@
 				B10022 /* ImageCompareUtils.swift */,
 				B10023 /* CoordinateAdapter.swift */,
 				B10024 /* GoIOSClient.swift */,
+				B10095 /* HostEnvironment.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -238,8 +258,21 @@
 				B10034 /* OCREngine.swift */,
 				B10035 /* RecordingService.swift */,
 				B10036 /* ReportGenerator.swift */,
+				G10012 /* Automation */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		G10012 /* Automation */ = {
+			isa = PBXGroup;
+			children = (
+				B10094 /* AutomationBackend.swift */,
+				B10092 /* AppiumClient.swift */,
+				B10091 /* AppiumServerManager.swift */,
+				B10090 /* DeviceSessionManager.swift */,
+				B10093 /* AppiumBackend.swift */,
+			);
+			path = Automation;
 			sourceTree = "<group>";
 		};
 		G10006 /* ViewModels */ = {
@@ -465,6 +498,13 @@
 				A10055 /* RecordingView.swift in Sources */,
 				A10056 /* ReportView.swift in Sources */,
 				A10057 /* SettingsView.swift in Sources */,
+				A10090 /* DeviceSessionManager.swift in Sources */,
+				A10091 /* AppiumServerManager.swift in Sources */,
+				A10092 /* AppiumClient.swift in Sources */,
+				A10093 /* AppiumBackend.swift in Sources */,
+				A10094 /* AutomationBackend.swift in Sources */,
+				A10095 /* HostEnvironment.swift in Sources */,
+				A10096 /* Locator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
