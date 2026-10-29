@@ -21,10 +21,38 @@ final class ProcessRunner {
 
     private init() {}
 
+    /// 解析 Xcode 的开发者目录。
+    /// 系统 xcode-select 若指向 CommandLineTools（其中缺少 simctl/xctrace/devicectl 等工具），
+    /// 则改用 /Applications/Xcode.app/Contents/Developer。
+    private static let resolvedDeveloperDir: String = {
+        let probe = Process()
+        probe.executableURL = URL(fileURLWithPath: "/usr/bin/xcode-select")
+        probe.arguments = ["-p"]
+        let pipe = Pipe()
+        probe.standardOutput = pipe
+        do {
+            try probe.run()
+        } catch {
+            return "/Applications/Xcode.app/Contents/Developer"
+        }
+        probe.waitUntilExit()
+        let output = (try? String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)) ?? ""
+        let path = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        if path.isEmpty || path.contains("CommandLineTools") {
+            let xcodeDir = "/Applications/Xcode.app/Contents/Developer"
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: xcodeDir, isDirectory: &isDir), isDir.boolValue {
+                return xcodeDir
+            }
+            return path
+        }
+        return path
+    }()
+
     // MARK: - 同步执行
 
     @discardableResult
-    func run(_ executable: String, arguments: [String] = [], timeout: TimeInterval = 30) -> ProcessResult {
+    func run(_ executable: String, arguments: [String] = [], timeout: TimeInterval = 30, environment: [String: String]? = nil) -> ProcessResult {
         let process = Process()
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -33,6 +61,28 @@ final class ProcessRunner {
         process.arguments = arguments
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
+
+        // 构建子进程环境: 默认继承 + Xcode 开发者目录 + 调用方自定义
+        var childEnv = ProcessInfo.processInfo.environment
+        // 补充 Homebrew 工具目录到 PATH (Apple Silicon: /opt/homebrew, Intel: /usr/local)
+        // 例如 idb 客户端需要在此找到 idb_companion
+        let brewPath = "/opt/homebrew/bin:/usr/local/bin"
+        childEnv["PATH"] = brewPath + ":" + (childEnv["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin")
+        let toolName = (executable as NSString).lastPathComponent
+        if toolName == "xcrun" || toolName == "xcodebuild" {
+            // xcrun/xcodebuild 需要 Xcode 的开发者目录
+            // （系统 xcode-select 指向 CommandLineTools 时会找不到 simctl/xctrace/devicectl）
+            let devDir = Self.resolvedDeveloperDir
+            if !devDir.isEmpty {
+                childEnv["DEVELOPER_DIR"] = devDir
+            }
+        }
+        if let environment {
+            for (key, value) in environment {
+                childEnv[key] = value
+            }
+        }
+        process.environment = childEnv
 
         logger.debug("执行命令: \(executable) \(arguments.joined(separator: " "))")
 
@@ -88,14 +138,14 @@ final class ProcessRunner {
 
     // MARK: - 异步执行
 
-    func runAsync(_ executable: String, arguments: [String] = [], timeout: TimeInterval = 30) async -> ProcessResult {
+    func runAsync(_ executable: String, arguments: [String] = [], timeout: TimeInterval = 30, environment: [String: String]? = nil) async -> ProcessResult {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let self else {
                     continuation.resume(returning: ProcessResult(exitCode: -1, stdout: "", stderr: "Runner deallocated"))
                     return
                 }
-                let result = self.run(executable, arguments: arguments, timeout: timeout)
+                let result = self.run(executable, arguments: arguments, timeout: timeout, environment: environment)
                 continuation.resume(returning: result)
             }
         }

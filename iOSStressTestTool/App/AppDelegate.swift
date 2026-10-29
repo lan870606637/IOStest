@@ -51,10 +51,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             logger.warning("simctl 不可用: \(simctlResult.stderr)")
         }
 
-        if runner.isToolAvailable("/usr/local/bin/idb") {
-            logger.info("idb (Facebook iOS Development Bridge) 可用")
+        if GoIOSClient.isToolAvailable {
+            logger.info("go-ios 可用 (\(GoIOSClient.displayPath))，支持真机隧道/截图/App 生命周期")
         } else {
-            logger.info("idb 未安装 (真机操作可能受限)，可通过 brew install idb-companion 安装")
+            logger.warning("go-ios 未检测到，真机功能将不可用。请确认 .tools/go-ios/ios 存在")
+        }
+
+        if ProcessRunner.shared.isToolAvailable("/usr/local/bin/idb")
+            || ProcessRunner.shared.isToolAvailable("/opt/homebrew/bin/idb") {
+            logger.info("idb 可用（作为真机 UI 控制的兜底后端）")
+        } else {
+            logger.info("idb 未安装（该 formula 已从 Homebrew 下架，属正常情况）")
         }
     }
 }

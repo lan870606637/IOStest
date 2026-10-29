@@ -2,6 +2,7 @@ import Foundation
 import Combine
 
 // MARK: - 录制视图模型
+@MainActor
 final class RecordingViewModel: ObservableObject {
     @Published var state: RecordingState = .idle
     @Published var recordedEvents: [RecordedRawEvent] = []

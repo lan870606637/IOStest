@@ -3,7 +3,6 @@
 // 推荐使用 Xcode 打开 .xcodeproj 进行完整构建（包含 XCUITest target）
 
 import PackageDescription
-
 let package = Package(
     name: "iOSStressTestTool",
     platforms: [

@@ -118,10 +118,19 @@ final class StressTestRunner: XCTestCase {
             XCUIDevice.shared.press(.home)
 
         case "volume_up":
+            // 音量键 API 在模拟器上不可用，仅真机支持
+            #if targetEnvironment(simulator)
+            print("音量加：模拟器不支持 XCUIDevice 音量键，已跳过（真机可用）")
+            #else
             XCUIDevice.shared.press(.volumeUp)
+            #endif
 
         case "volume_down":
+            #if targetEnvironment(simulator)
+            print("音量减：模拟器不支持 XCUIDevice 音量键，已跳过（真机可用）")
+            #else
             XCUIDevice.shared.press(.volumeDown)
+            #endif
 
         case "screenshot":
             let screenshot = XCUIScreen.main.screenshot()

@@ -12,6 +12,7 @@ struct ScreenPreviewView: View {
     @State private var refreshTimer: Timer?
     @State private var lastTapCoordinate: String = ""
     @State private var refreshInterval: Double = 1.0
+    @State private var captureFailed = false
 
     // 拖拽状态
     @State private var dragStart: CGPoint?
@@ -74,8 +75,31 @@ struct ScreenPreviewView: View {
                                 Image(systemName: "iphone")
                                     .font(.system(size: 64))
                                     .foregroundColor(.secondary)
-                                Text(deviceVM.selectedDevice == nil ? "请先选择设备" : "点击截图按钮获取屏幕画面")
-                                    .foregroundColor(.secondary)
+
+                                if let device = deviceVM.selectedDevice {
+                                    if device.deviceType == .physical, captureFailed {
+                                        Text("真机截图需要 go-ios 或 libimobiledevice")
+                                            .foregroundColor(.secondary)
+                                        Text("go-ios 已内置(.tools/go-ios/ios)；缺失时执行: brew install go-ios")
+                                            .font(.caption)
+                                            .foregroundColor(.orange)
+                                        HStack(spacing: 12) {
+                                            Button("打开 Xcode 设备窗口") {
+                                                openXcodeDeviceWindow()
+                                            }
+                                            Button("重试截图") { captureScreenshot() }
+                                        }
+                                        Text("Xcode 里 ⇧⌘2 打开设备窗口可看实时画面")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    } else {
+                                        Text("点击截图按钮获取屏幕画面")
+                                            .foregroundColor(.secondary)
+                                    }
+                                } else {
+                                    Text("请先选择设备")
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
                     }
@@ -176,20 +200,28 @@ struct ScreenPreviewView: View {
                         deviceHeight: device.screenHeight
                     )
 
-                    lastTapCoordinate = "点击: (\(coords.x), \(coords.y))"
-
                     if pressDuration > 0.5 {
                         // 长按
                         if recordingVM.state == .recording {
                             recordingVM.recordLongPress(x: coords.x, y: coords.y, duration: pressDuration)
                         }
-                        Task { await DeviceService.shared.longPress(udid: device.udid, x: coords.x, y: coords.y, duration: pressDuration) }
+                        Task {
+                            let ok = await DeviceService.shared.longPress(udid: device.udid, x: coords.x, y: coords.y, duration: pressDuration)
+                            await MainActor.run {
+                                lastTapCoordinate = "长按: (\(coords.x), \(coords.y))" + (ok ? "" : " ⚠️ 未执行(真机需 go-ios UI 后端)")
+                            }
+                        }
                     } else {
                         // 单击
                         if recordingVM.state == .recording {
                             recordingVM.recordTap(x: coords.x, y: coords.y)
                         }
-                        Task { await DeviceService.shared.tap(udid: device.udid, x: coords.x, y: coords.y) }
+                        Task {
+                            let ok = await DeviceService.shared.tap(udid: device.udid, x: coords.x, y: coords.y)
+                            await MainActor.run {
+                                lastTapCoordinate = "点击: (\(coords.x), \(coords.y))" + (ok ? "" : " ⚠️ 未执行(真机需 go-ios UI 后端)")
+                            }
+                        }
                     }
                 } else {
                     // 滑动
@@ -216,12 +248,15 @@ struct ScreenPreviewView: View {
                         )
                     }
                     Task {
-                        await DeviceService.shared.swipe(
+                        let ok = await DeviceService.shared.swipe(
                             udid: device.udid,
                             startX: startCoords.x, startY: startCoords.y,
                             endX: endCoords.x, endY: endCoords.y,
                             duration: min(pressDuration, 2.0)
                         )
+                        await MainActor.run {
+                            lastTapCoordinate = "滑动: (\(startCoords.x),\(startCoords.y)) -> (\(endCoords.x),\(endCoords.y))" + (ok ? "" : " ⚠️ 未执行(真机需 go-ios UI 后端)")
+                        }
                     }
                 }
 
@@ -286,9 +321,19 @@ struct ScreenPreviewView: View {
         Task {
             screenshotService.invalidateCache(for: device.udid)
             if let image = await screenshotService.captureScreenshot(deviceUDID: device.udid, deviceType: device.deviceType) {
-                await MainActor.run { previewImage = image }
+                await MainActor.run {
+                    previewImage = image
+                    captureFailed = false
+                }
+            } else {
+                await MainActor.run { captureFailed = true }
             }
         }
+    }
+
+    /// 激活 Xcode（用户在 Xcode 中按 ⇧⌘2 打开设备窗口查看实时画面）
+    private func openXcodeDeviceWindow() {
+        ProcessRunner.shared.run("/usr/bin/open", arguments: ["-a", "Xcode"])
     }
 
     private func startAutoRefresh() {

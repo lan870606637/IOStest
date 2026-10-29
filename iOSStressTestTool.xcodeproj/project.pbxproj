@@ -23,6 +23,7 @@
 		A10021 /* ProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10021; };
 		A10022 /* ImageCompareUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10022; };
 		A10023 /* CoordinateAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10023; };
+		A10024 /* GoIOSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10024; };
 
 		/* Services */
 		A10030 /* DeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10030; };
@@ -56,6 +57,9 @@
 		A10070 /* StressTestRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10070; };
 		A10071 /* EventPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10071; };
 		A10072 /* TestRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10072; };
+
+		/* iOS Host Sources */
+		A10080 /* IOSStressTestHostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10080; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +69,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = T10001;
 			remoteInfo = iOSStressTestTool;
+		};
+		C10002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = P10001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = T10003;
+			remoteInfo = iOSStressTestHost;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -85,6 +96,7 @@
 		B10021 /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
 		B10022 /* ImageCompareUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCompareUtils.swift; sourceTree = "<group>"; };
 		B10023 /* CoordinateAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoordinateAdapter.swift; sourceTree = "<group>"; };
+		B10024 /* GoIOSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoIOSClient.swift; sourceTree = "<group>"; };
 
 		/* Services */
 		B10030 /* DeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceService.swift; sourceTree = "<group>"; };
@@ -122,9 +134,14 @@
 		B10072 /* TestRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestRecorder.swift; sourceTree = "<group>"; };
 		B10073 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 
+		/* iOS Host */
+		B10080 /* IOSStressTestHostApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSStressTestHostApp.swift; sourceTree = "<group>"; };
+		B10081 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+
 		/* Products */
 		E10001 /* iOSStressTestTool.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSStressTestTool.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E10002 /* iOSStressTestUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iOSStressTestUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E10003 /* iOSStressTestHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSStressTestHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -142,6 +159,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F10003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -150,6 +174,7 @@
 			children = (
 				G10001 /* iOSStressTestTool */,
 				G10009 /* iOSStressTestUITests */,
+				G10010 /* iOSStressTestHost */,
 				G10099 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -198,6 +223,7 @@
 				B10021 /* ProcessRunner.swift */,
 				B10022 /* ImageCompareUtils.swift */,
 				B10023 /* CoordinateAdapter.swift */,
+				B10024 /* GoIOSClient.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -261,11 +287,29 @@
 			path = iOSStressTestUITests;
 			sourceTree = "<group>";
 		};
+		G10010 /* iOSStressTestHost */ = {
+			isa = PBXGroup;
+			children = (
+				G10011 /* App */,
+				B10081 /* Info.plist */,
+			);
+			path = iOSStressTestHost;
+			sourceTree = "<group>";
+		};
+		G10011 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B10080 /* IOSStressTestHostApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
 		G10099 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				E10001 /* iOSStressTestTool.app */,
 				E10002 /* iOSStressTestUITests.xctest */,
+				E10003 /* iOSStressTestHost.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -307,6 +351,23 @@
 			productReference = E10002 /* iOSStressTestUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		T10003 /* iOSStressTestHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = X10008;
+			buildPhases = (
+				S10003 /* Sources */,
+				F10003 /* Frameworks */,
+				R10003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = iOSStressTestHost;
+			productName = iOSStressTestHost;
+			productReference = E10003 /* iOSStressTestHost.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -322,7 +383,10 @@
 					};
 					T10002 = {
 						CreatedOnToolsVersion = 15.4;
-						TestTargetID = T10001;
+						TestTargetID = T10003;
+					};
+					T10003 = {
+						CreatedOnToolsVersion = 15.4;
 					};
 				};
 			};
@@ -342,6 +406,7 @@
 			targets = (
 				T10001 /* iOSStressTestTool */,
 				T10002 /* iOSStressTestUITests */,
+				T10003 /* iOSStressTestHost */,
 			);
 		};
 /* End PBXProject section */
@@ -352,6 +417,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10060 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		R10003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -373,6 +445,7 @@
 				A10021 /* ProcessRunner.swift in Sources */,
 				A10022 /* ImageCompareUtils.swift in Sources */,
 				A10023 /* CoordinateAdapter.swift in Sources */,
+				A10024 /* GoIOSClient.swift in Sources */,
 				A10030 /* DeviceService.swift in Sources */,
 				A10031 /* ScreenshotService.swift in Sources */,
 				A10032 /* EventExecutor.swift in Sources */,
@@ -405,13 +478,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		S10003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10080 /* IOSStressTestHostApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
 		D10001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = T10001 /* iOSStressTestTool */;
-			targetProxy = C10001 /* PBXContainerItemProxy */;
+			target = T10003 /* iOSStressTestHost */;
+			targetProxy = C10002 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -551,12 +632,16 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = iOSStressTestUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stresstesttool.ios.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iOSStressTestTool.app/Contents/MacOS/iOSStressTestTool";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = iOSStressTestHost;
 			};
 			name = Debug;
 		};
@@ -569,12 +654,59 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = iOSStressTestUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stresstesttool.ios.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iOSStressTestTool.app/Contents/MacOS/iOSStressTestTool";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = iOSStressTestHost;
+			};
+			name = Release;
+		};
+		/* iOS Host Target Debug */
+		X10008D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iOSStressTestHost/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stresstesttool.host;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		/* iOS Host Target Release */
+		X10008R /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = iOSStressTestHost/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stresstesttool.host;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -604,6 +736,15 @@
 			buildConfigurations = (
 				X10006D /* Debug */,
 				X10006R /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		X10008 /* Build configuration list for PBXNativeTarget "iOSStressTestHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				X10008D /* Debug */,
+				X10008R /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

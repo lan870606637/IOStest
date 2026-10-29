@@ -67,11 +67,20 @@ final class EventPlayer {
     }
 
     func pressVolumeUp() {
+        // 音量键 API 在模拟器上不可用，仅真机支持
+        #if targetEnvironment(simulator)
+        print("音量加：模拟器不支持 XCUIDevice 音量键，已跳过（真机可用）")
+        #else
         XCUIDevice.shared.press(.volumeUp)
+        #endif
     }
 
     func pressVolumeDown() {
+        #if targetEnvironment(simulator)
+        print("音量减：模拟器不支持 XCUIDevice 音量键，已跳过（真机可用）")
+        #else
         XCUIDevice.shared.press(.volumeDown)
+        #endif
     }
 
     // MARK: - 元素操作

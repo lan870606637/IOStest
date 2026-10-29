@@ -42,6 +42,8 @@ struct DeviceInfo: Identifiable, Codable, Hashable {
     var screenWidth: Int
     var screenHeight: Int
     var isAvailable: Bool
+    /// devicectl 的 CoreDevice 标识符（用于 devices:// 实时预览 URL）
+    var coreDeviceID: String? = nil
 
     var resolution: String {
         "\(screenWidth)x\(screenHeight)"

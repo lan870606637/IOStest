@@ -129,8 +129,8 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         toolCheckRow("Xcode Command Line Tools", path: "/usr/bin/xcrun")
                         toolCheckRow("simctl", path: "/usr/bin/xcrun")
-                        toolCheckRow("idb (Facebook)", path: "/usr/local/bin/idb")
-                        toolCheckRow("libimobiledevice", path: "/usr/local/bin/idevicescreenshot")
+                        goIOSToolRow()
+                        libimobiledeviceRow()
                     }
                     .padding(8)
                 }
@@ -186,6 +186,37 @@ struct SettingsView: View {
             Text(name)
             Spacer()
             Text(path)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    /// go-ios：真机隧道/截图/App 生命周期的主力工具，支持项目内置副本
+    private func goIOSToolRow() -> some View {
+        let available = GoIOSClient.isToolAvailable
+        return HStack {
+            Image(systemName: available ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundColor(available ? .green : .red)
+            Text("go-ios (真机主力)")
+            Spacer()
+            Text(GoIOSClient.displayPath)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    /// libimobiledevice：Apple Silicon 在 /opt/homebrew，Intel 在 /usr/local
+    private func libimobiledeviceRow() -> some View {
+        let runner = ProcessRunner.shared
+        let path = ["/opt/homebrew/bin/idevicescreenshot", "/usr/local/bin/idevicescreenshot"]
+            .first { runner.isToolAvailable($0) }
+        let available = path != nil
+        return HStack {
+            Image(systemName: available ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundColor(available ? .green : .red)
+            Text("libimobiledevice")
+            Spacer()
+            Text(path ?? "未安装")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

@@ -74,27 +74,57 @@ final class ScreenshotService: ObservableObject {
         return NSImage(contentsOfFile: tempPath)
     }
 
-    /// 真机截图 (通过 idevicescreenshot 或 idb)
+    /// 真机截图
+    /// iOS 17+ 已移除旧 screenshotr 服务，优先使用 go-ios（DVT 截图通道 + userspace 隧道），
+    /// 其次 idb / idevicescreenshot。截图属免签名能力，不需要 WDA。
     private func capturePhysicalDeviceScreenshot(udid: String) async -> NSImage? {
         let tempPath = NSTemporaryDirectory() + "device_screenshot_\(udid).png"
 
-        // 优先尝试 idb
-        var result = await runner.runAsync("/usr/local/bin/idb",
-            arguments: ["screenshot", "--udid", udid, tempPath])
+        // 方法1: go-ios（隧道 + 截图逻辑统一封装在 GoIOSClient 中）
+        if await GoIOSClient.shared.screenshot(udid: udid, outputPath: tempPath) {
+            if let image = NSImage(contentsOfFile: tempPath) {
+                try? FileManager.default.removeItem(atPath: tempPath)
+                return image
+            }
+            logger.warning("go-ios 截图成功但图像无法解码: \(tempPath)")
+        }
 
-        // 备选: libimobiledevice
+        // 方法2: idb / idevicescreenshot
+        let candidateDirs = ["/opt/homebrew/bin", "/usr/local/bin"]
+
+        // 优先尝试 idb
+        var result = ProcessResult(exitCode: -1, stdout: "", stderr: "idb 未找到")
+        if let idbPath = findTool(named: "idb", in: candidateDirs) {
+            result = await runner.runAsync(idbPath, arguments: ["screenshot", "--udid", udid, tempPath])
+        }
+
+        // 备选: libimobiledevice 的 idevicescreenshot
         if !result.isSuccess {
-            result = await runner.runAsync("/usr/local/bin/idevicescreenshot",
-                arguments: ["-u", udid, tempPath])
+            if let idevicePath = findTool(named: "idevicescreenshot", in: candidateDirs) {
+                result = await runner.runAsync(idevicePath, arguments: ["-u", udid, tempPath])
+            } else {
+                result = ProcessResult(exitCode: -1, stdout: "", stderr: "idevicescreenshot 未找到")
+            }
         }
 
         guard result.isSuccess else {
-            logger.error("真机截图失败: \(result.stderr)")
+            logger.error("真机截图失败: \(result.stderr)。可安装工具: brew install libimobiledevice (截图) 或 brew install go-ios (推荐，支持 iOS 17+)")
             return nil
         }
 
         defer { try? FileManager.default.removeItem(atPath: tempPath) }
         return NSImage(contentsOfFile: tempPath)
+    }
+
+    /// 在候选目录中查找可执行工具
+    private func findTool(named name: String, in dirs: [String]) -> String? {
+        for dir in dirs {
+            let path = dir + "/" + name
+            if FileManager.default.isExecutableFile(atPath: path) {
+                return path
+            }
+        }
+        return nil
     }
 
     // MARK: - 截图保存

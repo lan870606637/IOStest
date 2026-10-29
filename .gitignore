@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Xcode build artifacts
+.build/
+.derivedData/
+DerivedData/
+build/
+*.xcresult
+*.xcuserstate
+**/xcuserdata/
+
+# SwiftPM
+.swiftpm/xcode/xcuserdata/
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+
+# Local toolchains / large binaries (not source)
+.tools/
+
+# Logs
+*.log
+*.buildlog*.txt

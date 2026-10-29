@@ -26,6 +26,54 @@ final class CoordinateAdapter {
         ("iPad Pro 12.9\"", 1024, 1366, 2),
     ]
 
+    // 常见真机 productType 逻辑分辨率 (points)
+    static let productTypeResolutions: [String: (width: Int, height: Int)] = [
+        "iPhone9,1": (375, 667),  // iPhone 6s
+        "iPhone9,2": (414, 736),  // iPhone 6s Plus
+        "iPhone9,3": (375, 667),  // iPhone 7
+        "iPhone9,4": (414, 736),  // iPhone 7 Plus
+        "iPhone10,1": (375, 667), // iPhone 8
+        "iPhone10,2": (414, 736), // iPhone 8 Plus
+        "iPhone10,3": (375, 812), // iPhone X
+        "iPhone10,4": (375, 667), // iPhone 8
+        "iPhone10,5": (414, 736), // iPhone 8 Plus
+        "iPhone10,6": (375, 812), // iPhone X
+        "iPhone11,2": (375, 812), // iPhone XS
+        "iPhone11,4": (414, 896), // iPhone XS Max
+        "iPhone11,6": (414, 896), // iPhone XS Max
+        "iPhone11,8": (414, 896), // iPhone XR
+        "iPhone12,1": (414, 896), // iPhone 11
+        "iPhone12,3": (375, 812), // iPhone 11 Pro
+        "iPhone12,5": (414, 896), // iPhone 11 Pro Max
+        "iPhone12,8": (375, 667), // iPhone SE (2nd)
+        "iPhone13,1": (360, 780), // iPhone 12 mini
+        "iPhone13,2": (390, 844), // iPhone 12
+        "iPhone13,3": (390, 844), // iPhone 12 Pro
+        "iPhone13,4": (428, 926), // iPhone 12 Pro Max
+        "iPhone14,2": (390, 844), // iPhone 13 Pro
+        "iPhone14,3": (428, 926), // iPhone 13 Pro Max
+        "iPhone14,4": (375, 812), // iPhone 13 mini
+        "iPhone14,5": (390, 844), // iPhone 13
+        "iPhone14,6": (375, 667), // iPhone SE (3rd)
+        "iPhone14,7": (390, 844), // iPhone 14
+        "iPhone14,8": (428, 926), // iPhone 14 Plus
+        "iPhone15,2": (393, 852), // iPhone 14 Pro
+        "iPhone15,3": (430, 932), // iPhone 14 Pro Max
+        "iPhone15,4": (393, 852), // iPhone 15
+        "iPhone15,5": (430, 932), // iPhone 15 Plus
+        "iPhone16,1": (393, 852), // iPhone 15 Pro
+        "iPhone16,2": (430, 932), // iPhone 15 Pro Max
+        "iPhone17,1": (402, 874), // iPhone 16 Pro
+        "iPhone17,2": (440, 956), // iPhone 16 Pro Max
+        "iPhone17,3": (393, 852), // iPhone 16
+        "iPhone17,4": (430, 932), // iPhone 16 Plus
+    ]
+
+    /// 根据真机 productType (如 iPhone11,6) 获取逻辑分辨率
+    static func resolution(forProductType productType: String) -> (width: Int, height: Int)? {
+        productTypeResolutions[productType]
+    }
+
     private init() {}
 
     // MARK: - 坐标转换

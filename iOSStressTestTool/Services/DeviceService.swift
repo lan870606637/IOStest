@@ -84,14 +84,36 @@ final class DeviceService: ObservableObject {
 
     /// 获取真机设备列表
     private func fetchPhysicalDevices() async -> [DeviceInfo] {
-        // 方法1: 使用 xcrun xctrace
+        var physicals: [DeviceInfo] = []
+        var seenUDIDs = Set<String>()
+
+        // 方法1: libimobiledevice (idevice_id/ideviceinfo) — 支持所有 iOS 版本 (含 iOS 14 等老系统)
+        for device in await fetchPhysicalDevicesViaLibimobiledevice() where !seenUDIDs.contains(device.udid) {
+            seenUDIDs.insert(device.udid)
+            physicals.append(device)
+        }
+
+        // 方法2: xcrun devicectl — iOS 17+ 设备 (CoreDevice 只支持新系统)
+        if let devicectlDevices = await fetchPhysicalDevicesViaDevicectl() {
+            for device in devicectlDevices where !seenUDIDs.contains(device.udid) {
+                seenUDIDs.insert(device.udid)
+                physicals.append(device)
+            }
+        }
+
+        if !physicals.isEmpty {
+            return physicals
+        }
+
+        // 方法3: xcrun xctrace (兜底)
+        logger.warning("devicectl/libimobiledevice 未发现真机，尝试 xctrace")
         let result = await runner.runAsync("/usr/bin/xcrun", arguments: ["xctrace", "list", "devices"])
         guard result.isSuccess else {
             logger.warning("xcrun xctrace 获取真机列表失败，尝试 idb")
             return await fetchPhysicalDevicesViaIDB()
         }
 
-        var physicals: [DeviceInfo] = []
+        var fallbackDevices: [DeviceInfo] = []
         let lines = result.stdout.components(separatedBy: "\n")
         var inDevicesSection = false
 
@@ -107,11 +129,128 @@ final class DeviceService: ObservableObject {
             if inDevicesSection && !trimmed.isEmpty {
                 // 格式: DeviceName (OSVersion) (UDID)
                 if let parsed = parseXCTraceDeviceLine(trimmed) {
-                    physicals.append(parsed)
+                    fallbackDevices.append(parsed)
                 }
             }
         }
 
+        return fallbackDevices
+    }
+
+    /// 通过 libimobiledevice 获取真机列表 (方法1, 支持所有 iOS 版本)
+    private func fetchPhysicalDevicesViaLibimobiledevice() async -> [DeviceInfo] {
+        guard let ideviceID = findTool(named: "idevice_id", in: ["/opt/homebrew/bin", "/usr/local/bin"]),
+              let ideviceInfo = findTool(named: "ideviceinfo", in: ["/opt/homebrew/bin", "/usr/local/bin"]) else {
+            return []
+        }
+
+        let idResult = await runner.runAsync(ideviceID, arguments: ["-l"], timeout: 15)
+        guard idResult.isSuccess else { return [] }
+
+        let udids = idResult.stdout
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        var devices: [DeviceInfo] = []
+        for udid in udids {
+            let infoResult = await runner.runAsync(ideviceInfo, arguments: ["-u", udid], timeout: 20)
+            guard infoResult.isSuccess else { continue }
+
+            // ideviceinfo 输出为 "Key: Value" 文本行格式
+            var info: [String: String] = [:]
+            for line in infoResult.stdout.components(separatedBy: .newlines) {
+                let parts = line.split(separator: ":", maxSplits: 1).map(String.init)
+                guard parts.count == 2 else { continue }
+                info[parts[0].trimmingCharacters(in: .whitespaces)] = parts[1].trimmingCharacters(in: .whitespaces)
+            }
+
+            let name = info["DeviceName"] ?? "iPhone"
+            let version = info["ProductVersion"] ?? "Unknown"
+            let productType = info["ProductType"] ?? ""
+            let size = CoordinateAdapter.resolution(forProductType: productType) ?? (390, 844)
+
+            devices.append(DeviceInfo(
+                udid: udid,
+                name: name,
+                deviceType: .physical,
+                status: .connected,  // usbmuxd 可见即已连接
+                osVersion: "iOS \(version)",
+                modelName: productType.isEmpty ? name : productType,
+                screenWidth: size.width,
+                screenHeight: size.height,
+                isAvailable: true
+            ))
+        }
+
+        if !devices.isEmpty {
+            logger.info("libimobiledevice 发现 \(devices.count) 台真机: \(devices.map { "\($0.name)(\($0.udid))" }.joined(separator: ", "))")
+        }
+        return devices
+    }
+
+    /// 在候选目录中查找可执行工具
+    private func findTool(named name: String, in dirs: [String]) -> String? {
+        for dir in dirs {
+            let path = dir + "/" + name
+            if FileManager.default.isExecutableFile(atPath: path) {
+                return path
+            }
+        }
+        return nil
+    }
+
+    /// 通过 devicectl 获取真机列表 (方法1)
+    private func fetchPhysicalDevicesViaDevicectl() async -> [DeviceInfo]? {
+        let result = await runner.runAsync(
+            "/usr/bin/xcrun",
+            arguments: ["devicectl", "list", "devices", "--json-output", "-"],
+            timeout: 60
+        )
+        guard result.isSuccess,
+              let data = result.stdout.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let resultDict = json["result"] as? [String: Any],
+              let deviceList = resultDict["devices"] as? [[String: Any]] else {
+            logger.warning("devicectl 输出解析失败: \(result.stderr.prefix(200))")
+            return nil
+        }
+
+        var physicals: [DeviceInfo] = []
+        for device in deviceList {
+            guard let hardware = device["hardwareProperties"] as? [String: Any],
+                  let props = device["deviceProperties"] as? [String: Any],
+                  let connection = device["connectionProperties"] as? [String: Any] else { continue }
+
+            // 只保留有真实 UDID 的条目 (iOS 14 等老设备在 devicectl 中只有 identifier、无 UDID，
+            // 交由 libimobiledevice 路径发现)
+            guard let udid = hardware["udid"] as? String else { continue }
+
+            let name = (props["name"] as? String) ?? (hardware["marketingName"] as? String) ?? "Unknown"
+            let marketingName = hardware["marketingName"] as? String ?? name
+            let osVersion = props["osVersionNumber"] as? String ?? "Unknown"
+            let tunnelState = connection["tunnelState"] as? String ?? ""
+            let productType = hardware["productType"] as? String ?? ""
+
+            let size = CoordinateAdapter.resolution(forProductType: productType) ?? (390, 844)
+
+            physicals.append(DeviceInfo(
+                udid: udid,
+                name: name,
+                deviceType: .physical,
+                status: tunnelState == "connected" ? .connected : .disconnected,
+                osVersion: "iOS \(osVersion)",
+                modelName: marketingName,
+                screenWidth: size.width,
+                screenHeight: size.height,
+                isAvailable: true,
+                coreDeviceID: device["identifier"] as? String
+            ))
+        }
+
+        if !physicals.isEmpty {
+            logger.info("devicectl 发现 \(physicals.count) 台真机: \(physicals.map { "\($0.name)(\($0.udid))" }.joined(separator: ", "))")
+        }
         return physicals
     }
 
@@ -200,6 +339,10 @@ final class DeviceService: ObservableObject {
     /// 安装应用
     func installApp(udid: String, appPath: String) async -> Bool {
         logger.info("安装应用到设备 \(udid): \(appPath)")
+        if isPhysicalDevice(udid) {
+            // simctl 不支持真机；真机走 go-ios install（免签名，不需要 WDA）
+            return await goIOS.installApp(udid: udid, path: appPath)
+        }
         let result = await runner.simctlAsync(["install", udid, appPath])
         return result.isSuccess
     }
@@ -207,6 +350,9 @@ final class DeviceService: ObservableObject {
     /// 卸载应用
     func uninstallApp(udid: String, bundleId: String) async -> Bool {
         logger.info("卸载应用: \(bundleId)")
+        if isPhysicalDevice(udid) {
+            return await goIOS.uninstallApp(udid: udid, bundleID: bundleId)
+        }
         let result = await runner.simctlAsync(["uninstall", udid, bundleId])
         return result.isSuccess
     }
@@ -214,6 +360,10 @@ final class DeviceService: ObservableObject {
     /// 启动应用
     func launchApp(udid: String, bundleId: String) async -> Bool {
         logger.info("启动应用: \(bundleId)")
+        if isPhysicalDevice(udid) {
+            // simctl 不支持真机；真机走 go-ios launch（免签名）
+            return await goIOS.launchApp(udid: udid, bundleID: bundleId)
+        }
         let result = await runner.simctlAsync(["launch", udid, bundleId])
         return result.isSuccess
     }
@@ -221,6 +371,10 @@ final class DeviceService: ObservableObject {
     /// 终止应用
     func terminateApp(udid: String, bundleId: String) async -> Bool {
         logger.info("终止应用: \(bundleId)")
+        if isPhysicalDevice(udid) {
+            // simctl 不支持真机；真机走 go-ios kill（免签名）
+            return await goIOS.terminateApp(udid: udid, bundleID: bundleId)
+        }
         let result = await runner.simctlAsync(["terminate", udid, bundleId])
         return result.isSuccess
     }
@@ -229,12 +383,23 @@ final class DeviceService: ObservableObject {
 
     /// 模拟器点击
     func tap(udid: String, x: Int, y: Int) async -> Bool {
+        if isPhysicalDevice(udid) {
+            return await physicalTap(udid: udid, x: x, y: y)
+        }
         let result = await runner.simctlAsync(["io", udid, "tap", "\(x)", "\(y)"])
         return result.isSuccess
     }
 
     /// 模拟器滑动
     func swipe(udid: String, startX: Int, startY: Int, endX: Int, endY: Int, duration: Double = 0.5) async -> Bool {
+        if isPhysicalDevice(udid) {
+            return await physicalSwipe(
+                udid: udid,
+                startX: startX, startY: startY,
+                endX: endX, endY: endY,
+                duration: duration
+            )
+        }
         let result = await runner.simctlAsync([
             "io", udid, "swipe",
             "\(startX)", "\(startY)", "\(endX)", "\(endY)",
@@ -245,6 +410,9 @@ final class DeviceService: ObservableObject {
 
     /// 长按 (通过 swipe 同一点实现)
     func longPress(udid: String, x: Int, y: Int, duration: Double = 1.0) async -> Bool {
+        if isPhysicalDevice(udid) {
+            return await physicalLongPress(udid: udid, x: x, y: y, duration: duration)
+        }
         let result = await runner.simctlAsync([
             "io", udid, "swipe",
             "\(x)", "\(y)", "\(x)", "\(y)",
@@ -255,30 +423,46 @@ final class DeviceService: ObservableObject {
 
     /// Home 键
     func pressHome(udid: String) async -> Bool {
+        if isPhysicalDevice(udid) {
+            return await physicalPressButton(udid: udid, button: "home")
+        }
         let result = await runner.simctlAsync(["io", udid, "sendkey", "home"])
         return result.isSuccess
     }
 
     /// 音量加
     func pressVolumeUp(udid: String) async -> Bool {
+        if isPhysicalDevice(udid) {
+            return await physicalPressButton(udid: udid, button: "volumeUp")
+        }
         let result = await runner.simctlAsync(["io", udid, "sendkey", "volumeUp"])
         return result.isSuccess
     }
 
     /// 音量减
     func pressVolumeDown(udid: String) async -> Bool {
+        if isPhysicalDevice(udid) {
+            return await physicalPressButton(udid: udid, button: "volumeDown")
+        }
         let result = await runner.simctlAsync(["io", udid, "sendkey", "volumeDown"])
         return result.isSuccess
     }
 
     /// 锁屏
     func lockScreen(udid: String) async -> Bool {
+        if isPhysicalDevice(udid) {
+            return await physicalPressButton(udid: udid, button: "lock")
+        }
         let result = await runner.simctlAsync(["io", udid, "sendkey", "lock"])
         return result.isSuccess
     }
 
     /// 摇晃 (Shake gesture)
     func shake(udid: String) async -> Bool {
+        if isPhysicalDevice(udid) {
+            logger.warning("真机暂不支持摇晃手势 (go-ios/idb 均无 shake 命令)")
+            return false
+        }
         // 使用 AppleScript 发送摇晃手势到 Simulator
         let script = "tell application \"Simulator\" to activate\n" +
                      "tell application \"System Events\" to keystroke \"z\" using {control down, command down}"
@@ -288,7 +472,119 @@ final class DeviceService: ObservableObject {
 
     /// 输入文本
     func inputText(udid: String, text: String) async -> Bool {
+        if isPhysicalDevice(udid) {
+            return await physicalInputText(udid: udid, text: text)
+        }
         let result = await runner.simctlAsync(["io", udid, "sendtext", text])
+        return result.isSuccess
+    }
+
+    // MARK: - 真机控制
+    //
+    // 实现顺序：go-ios 优先，idb 兜底。
+    //
+    // 注意能力边界（go-ios 分三档）：
+    //  - 免签名：launch / kill / install / uninstall / screenshot / tunnel
+    //  - 需签名：ui tap|swipe|longpress|type|button —— 需要设备上已装好
+    //    已签名的 WDA 或 DeviceKit，否则会报 "no UI automation backend reachable"
+    //  - 不支持：shake
+
+    /// 判断 udid 是否为真机
+    private func isPhysicalDevice(_ udid: String) -> Bool {
+        devices.contains { $0.udid == udid && $0.deviceType == .physical }
+    }
+
+    /// go-ios 客户端
+    private var goIOS: GoIOSClient { GoIOSClient.shared }
+
+    /// 真机点击：go-ios → idb
+    private func physicalTap(udid: String, x: Int, y: Int) async -> Bool {
+        if goIOS.isAvailable, await goIOS.tap(udid: udid, x: x, y: y) {
+            return true
+        }
+        return await idbUI(udid, ["ui", "tap", "\(x)", "\(y)"])
+    }
+
+    /// 真机滑动：go-ios → idb
+    private func physicalSwipe(udid: String,
+                               startX: Int, startY: Int,
+                               endX: Int, endY: Int,
+                               duration: Double) async -> Bool {
+        if goIOS.isAvailable,
+           await goIOS.swipe(udid: udid, startX: startX, startY: startY,
+                             endX: endX, endY: endY, duration: duration) {
+            return true
+        }
+        return await idbUI(udid, [
+            "ui", "swipe",
+            "\(startX)", "\(startY)", "\(endX)", "\(endY)",
+            "--duration", String(format: "%.1f", duration)
+        ])
+    }
+
+    /// 真机长按：go-ios → idb
+    private func physicalLongPress(udid: String, x: Int, y: Int, duration: Double) async -> Bool {
+        if goIOS.isAvailable,
+           await goIOS.longPress(udid: udid, x: x, y: y, duration: duration) {
+            return true
+        }
+        return await idbUI(udid, [
+            "ui", "tap", "\(x)", "\(y)",
+            "--duration", String(format: "%.1f", duration)
+        ])
+    }
+
+    /// 真机按键：go-ios → idb
+    /// go-ios 的按钮名是小写驼峰/单词（home / lock / volumeUp / volumeDown），
+    /// idb 用的是大写常量（HOME / LOCK / VOLUME_UP / VOLUME_DOWN），此处做映射。
+    private func physicalPressButton(udid: String, button: String) async -> Bool {
+        if goIOS.isAvailable,
+           await goIOS.pressButton(udid: udid, button: button) {
+            return true
+        }
+        let idbButton: String
+        switch button {
+        case "home": idbButton = "HOME"
+        case "lock": idbButton = "LOCK"
+        case "volumeUp": idbButton = "VOLUME_UP"
+        case "volumeDown": idbButton = "VOLUME_DOWN"
+        default: idbButton = button.uppercased()
+        }
+        return await idbUI(udid, ["ui", "button", idbButton])
+    }
+
+    /// 真机输入文字：go-ios → idb
+    private func physicalInputText(udid: String, text: String) async -> Bool {
+        if goIOS.isAvailable, await goIOS.typeText(udid: udid, text: text) {
+            return true
+        }
+        return await idbUI(udid, ["ui", "text", text])
+    }
+
+    /// 查找 idb 客户端 (需要 idb_companion 已安装并在 PATH 中)
+    private var idbPath: String? {
+        for dir in ["/opt/homebrew/bin", "/usr/local/bin"] {
+            let path = dir + "/idb"
+            if FileManager.default.isExecutableFile(atPath: path) { return path }
+        }
+        return nil
+    }
+
+    /// 真机执行 idb ui 命令（go-ios UI 后端不可用时的兜底）
+    private func idbUI(_ udid: String, _ args: [String]) async -> Bool {
+        guard let idb = idbPath else {
+            logger.error("""
+                真机操作没有可用后端。
+                go-ios 的 UI 控制需要已签名的 WDA 或 DeviceKit：
+                  ios ui install wda --p12file=<证书> --profile=<描述文件>
+                idb 兜底方案需要 idb_companion（该 formula 已从 Homebrew 下架）
+                """)
+            return false
+        }
+        let result = await runner.runAsync(idb, arguments: args + ["--udid", udid], timeout: 60)
+        if !result.isSuccess {
+            logger.warning("idb 操作失败 (\(args.joined(separator: " "))): \(result.stderr.prefix(300))")
+        }
         return result.isSuccess
     }
 

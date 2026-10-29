@@ -2,6 +2,7 @@ import Foundation
 import Combine
 
 // MARK: - 设备视图模型
+@MainActor
 final class DeviceViewModel: ObservableObject {
     @Published var devices: [DeviceInfo] = []
     @Published var selectedDevice: DeviceInfo?

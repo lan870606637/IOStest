@@ -2,6 +2,7 @@ import Foundation
 import Combine
 
 // MARK: - 执行视图模型
+@MainActor
 final class ExecutionViewModel: ObservableObject {
     @Published var isExecuting = false
     @Published var progress: ExecutionProgress?
