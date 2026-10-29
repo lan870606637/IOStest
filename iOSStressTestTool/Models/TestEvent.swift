@@ -113,6 +113,9 @@ struct TestEvent: Identifiable, Codable {
     var x: Int?
     var y: Int?
 
+    /// 控件定位，优先于坐标；旧任务没有该字段时为 nil
+    var locator: Locator?
+
     // 滑动参数
     var startX: Int?
     var startY: Int?

@@ -16,6 +16,8 @@ struct EventReportData: Identifiable, Codable {
     var assertScreenshotPath: String?
     var failScreenshotPath: String?
     var coordinates: String?
+    /// 本次实际使用的执行策略（控件 / 坐标 / OCR / 图像）
+    var strategy: String?
 
     init(event: TestEvent) {
         self.id = UUID()

@@ -116,6 +116,9 @@ protocol AutomationBackend: AnyObject {
     func typeText(udid: String, text: String) async throws
     func pressButton(udid: String, button: HardwareButton) async throws
 
+    func launchApp(udid: String, bundleId: String) async throws
+    func terminateApp(udid: String, bundleId: String) async throws
+
     func screenshot(udid: String) async throws -> Data
     func source(udid: String) async throws -> String
 

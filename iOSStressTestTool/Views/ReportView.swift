@@ -157,6 +157,12 @@ struct ReportView: View {
                                             .frame(width: 100, alignment: .leading)
                                         Text(event.remark)
                                             .foregroundColor(.secondary)
+                                        if let strategy = event.strategy {
+                                            Text(strategy)
+                                                .font(.caption2)
+                                                .foregroundColor(.blue)
+                                                .lineLimit(1)
+                                        }
                                         Spacer()
                                         if let dur = event.duration {
                                             Text(String(format: "%.2fs", dur))

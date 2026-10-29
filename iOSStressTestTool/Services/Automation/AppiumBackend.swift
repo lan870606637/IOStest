@@ -91,6 +91,20 @@ final class AppiumBackend: AutomationBackend {
                                      args: [["name": button.appiumName]])
     }
 
+    func launchApp(udid: String, bundleId: String) async throws {
+        let (client, sessionId) = try await context(udid)
+        _ = try await client.execute(sessionId: sessionId,
+                                     script: "mobile: launchApp",
+                                     args: [["bundleId": bundleId]])
+    }
+
+    func terminateApp(udid: String, bundleId: String) async throws {
+        let (client, sessionId) = try await context(udid)
+        _ = try await client.execute(sessionId: sessionId,
+                                     script: "mobile: terminateApp",
+                                     args: [["bundleId": bundleId]])
+    }
+
     // MARK: - 页面
 
     func screenshot(udid: String) async throws -> Data {

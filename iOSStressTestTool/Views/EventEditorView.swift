@@ -65,7 +65,10 @@ struct EventEditorView: View {
                     // 类型专属参数
                     switch event.type {
                     case .click, .doubleClick, .longPress:
-                        tapParameterSection
+                        VStack(alignment: .leading, spacing: 16) {
+                            locatorSection
+                            tapParameterSection
+                        }
                     case .swipe:
                         swipeParameterSection
                     case .imageRecognitionClick:
@@ -348,6 +351,104 @@ struct EventEditorView: View {
                 }
                 Text("子事件数: \(event.childEvents?.count ?? 0)")
                     .foregroundColor(.secondary)
+            }
+            .padding(8)
+        }
+    }
+
+    // MARK: - 控件定位
+
+    private var locatorEnabled: Binding<Bool> {
+        Binding(
+            get: { event.locator != nil },
+            set: { enabled in
+                if enabled {
+                    if event.locator == nil {
+                        event.locator = Locator()
+                    }
+                } else {
+                    event.locator = nil
+                }
+            }
+        )
+    }
+
+    private var locatorStrategy: Binding<LocatorStrategy> {
+        Binding(
+            get: { event.locator?.strategy ?? .accessibilityId },
+            set: { event.locator?.strategy = $0 }
+        )
+    }
+
+    private var locatorValue: Binding<String> {
+        Binding(
+            get: { event.locator?.value ?? "" },
+            set: { event.locator?.value = $0 }
+        )
+    }
+
+    private var locatorTimeout: Binding<Double> {
+        Binding(
+            get: { event.locator?.timeout ?? 5 },
+            set: { event.locator?.timeout = $0 }
+        )
+    }
+
+    private var locatorIndex: Binding<Int> {
+        Binding(
+            get: { event.locator?.index ?? 0 },
+            set: { event.locator?.index = $0 == 0 ? nil : $0 }
+        )
+    }
+
+    private var locatorSection: some View {
+        GroupBox("控件定位（优先于坐标）") {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("使用控件定位", isOn: locatorEnabled)
+
+                if event.locator != nil {
+                    HStack {
+                        Text("定位方式")
+                            .frame(width: 80, alignment: .trailing)
+                        Picker("", selection: locatorStrategy) {
+                            ForEach(LocatorStrategy.allCases.filter { $0 != .point }) { strategy in
+                                Text(strategy.displayName).tag(strategy)
+                            }
+                        }
+                        .frame(width: 200)
+                    }
+
+                    HStack {
+                        Text("匹配值")
+                            .frame(width: 80, alignment: .trailing)
+                        TextField(event.locator?.strategy.placeholder ?? "", text: locatorValue)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    HStack {
+                        Text("超时(秒)")
+                            .frame(width: 80, alignment: .trailing)
+                        TextField("", value: locatorTimeout, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+
+                        Text("匹配序号")
+                            .frame(width: 80, alignment: .trailing)
+                        Stepper(value: locatorIndex, in: 0...20) {
+                            Text(locatorIndex.wrappedValue == 0
+                                 ? "第一个"
+                                 : "第 \(locatorIndex.wrappedValue + 1) 个")
+                        }
+                    }
+
+                    Text(event.locator?.strategy.helpText ?? "")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("找不到控件时会自动回退到下方坐标。")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             .padding(8)
         }

@@ -53,12 +53,16 @@ final class ReportGenerator: ObservableObject {
     }
 
     /// 结束当前事件
-    func endEvent(status: EventStatus, errorMessage: String? = nil, screenshotPath: String? = nil) {
+    func endEvent(status: EventStatus,
+                  errorMessage: String? = nil,
+                  screenshotPath: String? = nil,
+                  strategy: String? = nil) {
         guard var event = currentEvent else { return }
         event.endTime = Date()
         event.status = status
         event.errorMessage = errorMessage
         event.screenshotPath = screenshotPath
+        event.strategy = strategy
         if let start = event.startTime {
             event.duration = Date().timeIntervalSince(start)
         }
@@ -230,6 +234,7 @@ final class ReportGenerator: ObservableObject {
                 <div class="event \(statusClass)">
                     <strong>\(event.eventName)</strong> - \(event.remark)
                     <span class="badge \(statusClass)">\(event.status.rawValue)</span>
+                    \(event.strategy.map { "<br><small>策略: \($0)</small>" } ?? "")
                     \(event.errorMessage.map { "<br><small style='color:#ff3b30'>\($0)</small>" } ?? "")
                 </div>
                 """

@@ -70,10 +70,20 @@ actor AppiumServerManager {
             return
         }
 
+        let rootPID = process.processIdentifier
+        let descendants = Self.processTree(root: rootPID)
+
         process.terminate()
+        for child in descendants.reversed() {
+            kill(child, SIGTERM)
+        }
         try? await Task.sleep(nanoseconds: 1_500_000_000)
+
+        for child in descendants where kill(child, 0) == 0 {
+            kill(child, SIGKILL)
+        }
         if process.isRunning {
-            kill(process.processIdentifier, SIGKILL)
+            kill(rootPID, SIGKILL)
         }
 
         self.process = nil
@@ -193,6 +203,24 @@ actor AppiumServerManager {
     }
 
     // MARK: - 健康检查
+
+    /// 递归收集子进程（xcodebuild / WDA runner），退出时一并清理，避免孤儿进程。
+    private static func processTree(root: pid_t) -> [pid_t] {
+        var result: [pid_t] = []
+        var queue: [pid_t] = [root]
+
+        while !queue.isEmpty {
+            let current = queue.removeFirst()
+            let children = ProcessRunner.shared.run("/usr/bin/pgrep", arguments: ["-P", "\(current)"])
+            guard children.isSuccess else { continue }
+            for line in children.stdout.split(separator: "\n") {
+                guard let pid = Int32(line.trimmingCharacters(in: .whitespaces)), pid > 0 else { continue }
+                result.append(pid)
+                queue.append(pid)
+            }
+        }
+        return result
+    }
 
     private func waitForReady(_ url: URL, timeout: TimeInterval) async -> Bool {
         let deadline = Date().addingTimeInterval(timeout)

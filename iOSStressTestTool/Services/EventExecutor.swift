@@ -30,6 +30,11 @@ final class EventExecutor: ObservableObject {
     private let logger = Logger.shared
     private let reportGenerator = ReportGenerator.shared
 
+    /// 新的自动化后端（Appium）。失败时回退到 DeviceService 的 CLI 实现。
+    private let backend: AutomationBackend = AppiumBackend()
+    /// 记录每个事件实际使用的策略（按事件 id；@MainActor 串行访问）
+    private var strategyTrace: [UUID: String] = [:]
+
     var onProgress: ((ExecutionProgress) -> Void)?
     var onEventComplete: ((TestEvent, EventStatus, String?) -> Void)?
 
@@ -51,6 +56,18 @@ final class EventExecutor: ObservableObject {
 
         let device = deviceService.devices.first { $0.udid == deviceUDID }
         let deviceName = device?.name ?? deviceUDID
+
+        // 提前建好自动化会话，避免第一条事件等 30 秒
+        let bundleId = task.events.compactMap { $0.bundleIdentifier }.first
+        let platformVersion = device?.osVersion.replacingOccurrences(of: "iOS ", with: "")
+        do {
+            try await backend.ensureSession(udid: deviceUDID,
+                                            bundleId: bundleId,
+                                            platformVersion: platformVersion)
+            logger.info("自动化会话就绪 (Appium)")
+        } catch {
+            logger.error("创建自动化会话失败，输入将回退到 CLI 后端: \(error.localizedDescription)")
+        }
 
         // 开始报告
         reportGenerator.startReport(taskName: task.name, deviceUDID: deviceUDID, deviceName: deviceName)
@@ -122,6 +139,12 @@ final class EventExecutor: ObservableObject {
         let eventReport = EventReportData(event: event)
         reportGenerator.startEvent(eventReport)
 
+        if let bundleId = event.bundleIdentifier, !bundleId.isEmpty {
+            try? await backend.ensureSession(udid: deviceUDID,
+                                             bundleId: bundleId,
+                                             platformVersion: nil)
+        }
+
         let result: (EventStatus, String?)
 
         switch event.type {
@@ -163,37 +186,187 @@ final class EventExecutor: ObservableObject {
             result = await executeEventGroup(event, deviceUDID: deviceUDID)
         }
 
-        reportGenerator.endEvent(status: result.0, errorMessage: result.1)
+        reportGenerator.endEvent(status: result.0,
+                                 errorMessage: result.1,
+                                 strategy: takeStrategy(event))
         return result
+    }
+
+    // MARK: - 后端路由（Appium 优先，CLI 兜底）
+
+    private func recordStrategy(_ event: TestEvent, _ strategy: String) {
+        strategyTrace[event.id] = strategy
+    }
+
+    private func takeStrategy(_ event: TestEvent) -> String? {
+        strategyTrace.removeValue(forKey: event.id)
+    }
+
+    /// 轮询等待控件出现；超时返回 nil，会话错误继续抛出。
+    private func waitForElement(udid: String, locator: Locator) async throws -> ElementHandle? {
+        let timeout = max(locator.timeout, 0.2)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if let element = try await backend.findElement(udid: udid, locator: locator) {
+                return element
+            }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        } while Date() < deadline
+        return nil
+    }
+
+    private func tap(udid: String, x: Int, y: Int) async -> Bool {
+        do {
+            try await backend.tap(udid: udid, x: x, y: y)
+            return true
+        } catch {
+            logger.warning("Appium 点击失败，回退 CLI: \(error.localizedDescription)")
+            return await deviceService.tap(udid: udid, x: x, y: y)
+        }
+    }
+
+    private func doubleTap(udid: String, x: Int, y: Int) async -> Bool {
+        do {
+            try await backend.doubleTap(udid: udid, x: x, y: y)
+            return true
+        } catch {
+            logger.warning("Appium 双击失败，回退 CLI: \(error.localizedDescription)")
+            let first = await deviceService.tap(udid: udid, x: x, y: y)
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            let second = await deviceService.tap(udid: udid, x: x, y: y)
+            return first && second
+        }
+    }
+
+    private func longPress(udid: String, x: Int, y: Int, duration: TimeInterval) async -> Bool {
+        do {
+            try await backend.longPress(udid: udid, x: x, y: y, duration: duration)
+            return true
+        } catch {
+            logger.warning("Appium 长按失败，回退 CLI: \(error.localizedDescription)")
+            return await deviceService.longPress(udid: udid, x: x, y: y, duration: duration)
+        }
+    }
+
+    private func swipe(udid: String,
+                       fromX: Int, fromY: Int,
+                       toX: Int, toY: Int,
+                       duration: TimeInterval) async -> Bool {
+        do {
+            try await backend.swipe(udid: udid,
+                                    fromX: fromX, fromY: fromY,
+                                    toX: toX, toY: toY,
+                                    duration: duration)
+            return true
+        } catch {
+            logger.warning("Appium 滑动失败，回退 CLI: \(error.localizedDescription)")
+            return await deviceService.swipe(udid: udid,
+                                             startX: fromX, startY: fromY,
+                                             endX: toX, endY: toY,
+                                             duration: duration)
+        }
+    }
+
+    private func press(_ button: HardwareButton, udid: String) async -> Bool {
+        do {
+            try await backend.pressButton(udid: udid, button: button)
+            return true
+        } catch {
+            logger.warning("Appium 按键失败，回退 CLI: \(error.localizedDescription)")
+            switch button {
+            case .home: return await deviceService.pressHome(udid: udid)
+            case .lock: return await deviceService.lockScreen(udid: udid)
+            case .volumeUp: return await deviceService.pressVolumeUp(udid: udid)
+            case .volumeDown: return await deviceService.pressVolumeDown(udid: udid)
+            }
+        }
+    }
+
+    private func captureScreenshot(device: DeviceInfo) async -> NSImage? {
+        if let data = try? await backend.screenshot(udid: device.udid),
+           let image = NSImage(data: data) {
+            return image
+        }
+        return await screenshotService.captureScreenshot(deviceUDID: device.udid,
+                                                         deviceType: device.deviceType)
     }
 
     // MARK: - 具体事件执行
 
     private func executeClick(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
-        guard let x = event.x, let y = event.y else {
-            return (.failed, "点击坐标未设置")
+        if let locator = event.locator, locator.strategy != .point {
+            do {
+                if let element = try await waitForElement(udid: deviceUDID, locator: locator) {
+                    try await backend.click(udid: deviceUDID, element: element)
+                    recordStrategy(event, "控件 \(locator.summary)")
+                    return (.success, nil)
+                }
+                logger.warning("控件未找到，回退坐标: \(locator.summary)")
+            } catch {
+                logger.warning("控件定位失败，回退坐标: \(error.localizedDescription)")
+            }
         }
-        let success = await deviceService.tap(udid: deviceUDID, x: x, y: y)
-        return success ? (.success, nil) : (.failed, "点击执行失败")
+
+        guard let x = event.x, let y = event.y else {
+            return (.failed, event.locator == nil ? "点击坐标未设置" : "控件未找到且未设置坐标")
+        }
+        if await tap(udid: deviceUDID, x: x, y: y) {
+            recordStrategy(event, "坐标 (\(x), \(y))")
+            return (.success, nil)
+        }
+        return (.failed, "点击执行失败")
     }
 
     private func executeDoubleClick(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
-        guard let x = event.x, let y = event.y else {
-            return (.failed, "双击坐标未设置")
+        if let locator = event.locator, locator.strategy != .point {
+            do {
+                if let element = try await waitForElement(udid: deviceUDID, locator: locator) {
+                    let rect = try await backend.rect(udid: deviceUDID, element: element)
+                    let x = Int(rect.midX), y = Int(rect.midY)
+                    if await doubleTap(udid: deviceUDID, x: x, y: y) {
+                        recordStrategy(event, "控件 \(locator.summary) 中心 (\(x), \(y))")
+                        return (.success, nil)
+                    }
+                }
+            } catch {
+                logger.warning("双击控件定位失败，回退坐标: \(error.localizedDescription)")
+            }
         }
-        // 快速执行两次点击
-        let s1 = await deviceService.tap(udid: deviceUDID, x: x, y: y)
-        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
-        let s2 = await deviceService.tap(udid: deviceUDID, x: x, y: y)
-        return (s1 && s2) ? (.success, nil) : (.failed, "双击执行失败")
+
+        guard let x = event.x, let y = event.y else {
+            return (.failed, event.locator == nil ? "双击坐标未设置" : "控件未找到且未设置坐标")
+        }
+        if await doubleTap(udid: deviceUDID, x: x, y: y) {
+            recordStrategy(event, "坐标 (\(x), \(y))")
+            return (.success, nil)
+        }
+        return (.failed, "双击执行失败")
     }
 
     private func executeLongPress(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
-        guard let x = event.x, let y = event.y else {
-            return (.failed, "长按坐标未设置")
+        if let locator = event.locator, locator.strategy != .point {
+            do {
+                if let element = try await waitForElement(udid: deviceUDID, locator: locator) {
+                    let rect = try await backend.rect(udid: deviceUDID, element: element)
+                    let x = Int(rect.midX), y = Int(rect.midY)
+                    if await longPress(udid: deviceUDID, x: x, y: y, duration: event.pressDuration) {
+                        recordStrategy(event, "控件 \(locator.summary) 中心 (\(x), \(y))")
+                        return (.success, nil)
+                    }
+                }
+            } catch {
+                logger.warning("长按控件定位失败，回退坐标: \(error.localizedDescription)")
+            }
         }
-        let success = await deviceService.longPress(udid: deviceUDID, x: x, y: y, duration: event.pressDuration)
-        return success ? (.success, nil) : (.failed, "长按执行失败")
+
+        guard let x = event.x, let y = event.y else {
+            return (.failed, event.locator == nil ? "长按坐标未设置" : "控件未找到且未设置坐标")
+        }
+        if await longPress(udid: deviceUDID, x: x, y: y, duration: event.pressDuration) {
+            recordStrategy(event, "坐标 (\(x), \(y))")
+            return (.success, nil)
+        }
+        return (.failed, "长按执行失败")
     }
 
     private func executeSwipe(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
@@ -201,12 +374,14 @@ final class EventExecutor: ObservableObject {
               let ex = event.endX, let ey = event.endY else {
             return (.failed, "滑动坐标未设置")
         }
-        let success = await deviceService.swipe(
-            udid: deviceUDID,
-            startX: sx, startY: sy, endX: ex, endY: ey,
-            duration: event.swipeDuration
-        )
-        return success ? (.success, nil) : (.failed, "滑动执行失败")
+        if await swipe(udid: deviceUDID,
+                       fromX: sx, fromY: sy,
+                       toX: ex, toY: ey,
+                       duration: event.swipeDuration) {
+            recordStrategy(event, "坐标滑动 (\(sx),\(sy))→(\(ex),\(ey))")
+            return (.success, nil)
+        }
+        return (.failed, "滑动执行失败")
     }
 
     private func executeImageRecognitionClick(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
@@ -223,7 +398,7 @@ final class EventExecutor: ObservableObject {
         }
 
         // 截图
-        guard let screenshot = await screenshotService.captureScreenshot(deviceUDID: deviceUDID, deviceType: device.deviceType) else {
+        guard let screenshot = await captureScreenshot(device: device) else {
             return (.failed, "截图失败")
         }
 
@@ -242,8 +417,11 @@ final class EventExecutor: ObservableObject {
             deviceHeight: device.screenHeight
         )
 
-        let success = await deviceService.tap(udid: deviceUDID, x: coords.x, y: coords.y)
-        return success ? (.success, nil) : (.failed, "图像识别后点击失败")
+        if await tap(udid: deviceUDID, x: coords.x, y: coords.y) {
+            recordStrategy(event, "图像识别 (\(coords.x), \(coords.y))")
+            return (.success, nil)
+        }
+        return (.failed, "图像识别后点击失败")
     }
 
     private func executeOCRTextClick(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
@@ -255,7 +433,7 @@ final class EventExecutor: ObservableObject {
             return (.failed, "设备未找到")
         }
 
-        guard let screenshot = await screenshotService.captureScreenshot(deviceUDID: deviceUDID, deviceType: device.deviceType) else {
+        guard let screenshot = await captureScreenshot(device: device) else {
             return (.failed, "截图失败")
         }
 
@@ -271,8 +449,11 @@ final class EventExecutor: ObservableObject {
             screenHeight: device.screenHeight
         )
 
-        let success = await deviceService.tap(udid: deviceUDID, x: coords.x, y: coords.y)
-        return success ? (.success, nil) : (.failed, "OCR 识别后点击失败")
+        if await tap(udid: deviceUDID, x: coords.x, y: coords.y) {
+            recordStrategy(event, "OCR (\(coords.x), \(coords.y))")
+            return (.success, nil)
+        }
+        return (.failed, "OCR 识别后点击失败")
     }
 
     private func executeScreenshot(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
@@ -280,7 +461,7 @@ final class EventExecutor: ObservableObject {
             return (.failed, "设备未找到")
         }
         screenshotService.invalidateCache(for: deviceUDID)
-        guard let screenshot = await screenshotService.captureScreenshot(deviceUDID: deviceUDID, deviceType: device.deviceType) else {
+        guard let screenshot = await captureScreenshot(device: device) else {
             return (.failed, "截图失败")
         }
         let name = event.remark.isEmpty ? "screenshot" : event.remark
@@ -297,7 +478,7 @@ final class EventExecutor: ObservableObject {
         }
 
         screenshotService.invalidateCache(for: deviceUDID)
-        guard let screenshot = await screenshotService.captureScreenshot(deviceUDID: deviceUDID, deviceType: device.deviceType),
+        guard let screenshot = await captureScreenshot(device: device),
               let cgScreenshot = screenshot.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             return (.failed, "截图失败")
         }
@@ -320,7 +501,15 @@ final class EventExecutor: ObservableObject {
         guard let bundleId = event.bundleIdentifier, !bundleId.isEmpty else {
             return (.failed, "未指定应用 Bundle ID")
         }
+        do {
+            try await backend.terminateApp(udid: deviceUDID, bundleId: bundleId)
+            recordStrategy(event, "Appium terminateApp")
+            return (.success, nil)
+        } catch {
+            logger.warning("Appium 终止 App 失败，回退 CLI: \(error.localizedDescription)")
+        }
         let success = await deviceService.terminateApp(udid: deviceUDID, bundleId: bundleId)
+        if success { recordStrategy(event, "CLI terminateApp") }
         return success ? (.success, nil) : (.failed, "终止应用失败")
     }
 
@@ -328,17 +517,25 @@ final class EventExecutor: ObservableObject {
         guard let bundleId = event.bundleIdentifier, !bundleId.isEmpty else {
             return (.failed, "未指定应用 Bundle ID")
         }
+        do {
+            try await backend.launchApp(udid: deviceUDID, bundleId: bundleId)
+            recordStrategy(event, "Appium launchApp")
+            return (.success, nil)
+        } catch {
+            logger.warning("Appium 启动 App 失败，回退 CLI: \(error.localizedDescription)")
+        }
         let success = await deviceService.launchApp(udid: deviceUDID, bundleId: bundleId)
+        if success { recordStrategy(event, "CLI launchApp") }
         return success ? (.success, nil) : (.failed, "启动应用失败")
     }
 
     private func executeHardwareButton(_ type: EventType, deviceUDID: String) async -> (EventStatus, String?) {
         let success: Bool
         switch type {
-        case .homeButton: success = await deviceService.pressHome(udid: deviceUDID)
-        case .volumeUp: success = await deviceService.pressVolumeUp(udid: deviceUDID)
-        case .volumeDown: success = await deviceService.pressVolumeDown(udid: deviceUDID)
-        case .lockScreen: success = await deviceService.lockScreen(udid: deviceUDID)
+        case .homeButton: success = await press(.home, udid: deviceUDID)
+        case .volumeUp: success = await press(.volumeUp, udid: deviceUDID)
+        case .volumeDown: success = await press(.volumeDown, udid: deviceUDID)
+        case .lockScreen: success = await press(.lock, udid: deviceUDID)
         case .shake: success = await deviceService.shake(udid: deviceUDID)
         default: return (.failed, "未知硬件按钮")
         }
@@ -363,7 +560,7 @@ final class EventExecutor: ObservableObject {
             return (.failed, "设备未找到")
         }
 
-        guard let screenshot = await screenshotService.captureScreenshot(deviceUDID: deviceUDID, deviceType: device.deviceType) else {
+        guard let screenshot = await captureScreenshot(device: device) else {
             return (.failed, "断言截图失败")
         }
 
@@ -380,7 +577,18 @@ final class EventExecutor: ObservableObject {
             return result.found ? (.success, nil) : (.failed, "断言失败: 未找到匹配图像")
 
         case .assertElement:
-            // UI 元素断言通过 XCUITest 实现，此处做 OCR 降级
+            // 优先用控件定位断言；没有 locator 时降级 OCR
+            if let locator = event.locator, locator.strategy != .point {
+                do {
+                    if try await waitForElement(udid: deviceUDID, locator: locator) != nil {
+                        recordStrategy(event, "控件断言 \(locator.summary)")
+                        return (.success, nil)
+                    }
+                    return (.failed, "断言失败: 未找到控件 \(locator.summary)")
+                } catch {
+                    return (.failed, "断言失败: \(error.localizedDescription)")
+                }
+            }
             let result = await ocrEngine.findText(target, in: screenshot)
             return result.found ? (.success, nil) : (.failed, "断言失败: 未找到UI元素 '\(target)'")
         }

@@ -1,8 +1,11 @@
 import SwiftUI
+import AppKit
 
 // MARK: - 设置视图
 struct SettingsView: View {
     @StateObject private var config = AppConfig.shared
+    @State private var environmentChecks: [HostEnvironmentCheck] = []
+    @State private var appiumState = "未启动"
 
     var body: some View {
         ScrollView {
@@ -124,13 +127,46 @@ struct SettingsView: View {
                     .padding(8)
                 }
 
-                // 工具检测
-                GroupBox("环境检测") {
+                // 环境检测
+                GroupBox("环境检测（iOS 自动化）") {
                     VStack(alignment: .leading, spacing: 8) {
-                        toolCheckRow("Xcode Command Line Tools", path: "/usr/bin/xcrun")
-                        toolCheckRow("simctl", path: "/usr/bin/xcrun")
+                        HStack {
+                            Text("Developer mode / xcode-select / Appium / WDA 驱动")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Button("重新检测") {
+                                environmentChecks = HostEnvironment.checks()
+                            }
+                        }
+
+                        ForEach(environmentChecks) { check in
+                            environmentRow(check)
+                        }
+
+                        Divider()
+
                         goIOSToolRow()
                         libimobiledeviceRow()
+                    }
+                    .padding(8)
+                }
+
+                // Appium 服务
+                GroupBox("Appium 服务") {
+                    HStack(spacing: 12) {
+                        Circle()
+                            .fill(appiumState.contains("运行中") ? .green : .gray)
+                            .frame(width: 8, height: 8)
+                        Text(appiumState)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                        Spacer()
+                        Button("启动/检查") { checkAppiumService() }
+                        Button("打开日志") {
+                            NSWorkspace.shared.open(URL(fileURLWithPath: HostEnvironment.appiumLogPath))
+                        }
                     }
                     .padding(8)
                 }
@@ -152,6 +188,9 @@ struct SettingsView: View {
                 }
             }
             .padding(20)
+            .onAppear {
+                environmentChecks = HostEnvironment.checks()
+            }
         }
     }
 
@@ -219,6 +258,60 @@ struct SettingsView: View {
             Text(path ?? "未安装")
                 .font(.caption)
                 .foregroundColor(.secondary)
+        }
+    }
+
+    private func environmentRow(_ check: HostEnvironmentCheck) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                Image(systemName: check.status.symbol)
+                    .foregroundColor(environmentColor(check.status))
+                Text(check.name)
+                Spacer()
+                Text(check.detail)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            if let fix = check.fix {
+                HStack(spacing: 6) {
+                    Text(fix)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.orange)
+                    Button("复制") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(fix, forType: .string)
+                    }
+                    .buttonStyle(.borderless)
+                }
+                .padding(.leading, 22)
+            }
+        }
+    }
+
+    private func environmentColor(_ status: HostEnvironmentCheck.Status) -> Color {
+        switch status {
+        case .ok: return .green
+        case .warning: return .orange
+        case .failed: return .red
+        }
+    }
+
+    private func checkAppiumService() {
+        appiumState = "启动中..."
+        Task {
+            do {
+                let url = try await AppiumServerManager.shared.ensureRunning()
+                let state = await AppiumServerManager.shared.stateDescription()
+                await MainActor.run {
+                    appiumState = "\(state) · \(url.absoluteString)"
+                }
+            } catch {
+                await MainActor.run {
+                    appiumState = "启动失败: \(error.localizedDescription)"
+                }
+            }
         }
     }
 

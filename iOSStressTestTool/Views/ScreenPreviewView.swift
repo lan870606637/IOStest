@@ -6,6 +6,7 @@ struct ScreenPreviewView: View {
     @ObservedObject var recordingVM: RecordingViewModel
 
     @StateObject private var screenshotService = ScreenshotService.shared
+    private let backend = AppiumBackend()
 
     @State private var previewImage: NSImage?
     @State private var isAutoRefreshing = false
@@ -206,9 +207,10 @@ struct ScreenPreviewView: View {
                             recordingVM.recordLongPress(x: coords.x, y: coords.y, duration: pressDuration)
                         }
                         Task {
-                            let ok = await DeviceService.shared.longPress(udid: device.udid, x: coords.x, y: coords.y, duration: pressDuration)
+                            lastTapCoordinate = "连接自动化会话..."
+                            let ok = await previewLongPress(udid: device.udid, x: coords.x, y: coords.y, duration: pressDuration)
                             await MainActor.run {
-                                lastTapCoordinate = "长按: (\(coords.x), \(coords.y))" + (ok ? "" : " ⚠️ 未执行(真机需 go-ios UI 后端)")
+                                lastTapCoordinate = "长按: (\(coords.x), \(coords.y))" + (ok ? "" : " ⚠️ 未执行")
                             }
                         }
                     } else {
@@ -217,9 +219,10 @@ struct ScreenPreviewView: View {
                             recordingVM.recordTap(x: coords.x, y: coords.y)
                         }
                         Task {
-                            let ok = await DeviceService.shared.tap(udid: device.udid, x: coords.x, y: coords.y)
+                            lastTapCoordinate = "连接自动化会话..."
+                            let ok = await previewTap(udid: device.udid, x: coords.x, y: coords.y)
                             await MainActor.run {
-                                lastTapCoordinate = "点击: (\(coords.x), \(coords.y))" + (ok ? "" : " ⚠️ 未执行(真机需 go-ios UI 后端)")
+                                lastTapCoordinate = "点击: (\(coords.x), \(coords.y))" + (ok ? "" : " ⚠️ 未执行")
                             }
                         }
                     }
@@ -248,14 +251,15 @@ struct ScreenPreviewView: View {
                         )
                     }
                     Task {
-                        let ok = await DeviceService.shared.swipe(
+                        lastTapCoordinate = "连接自动化会话..."
+                        let ok = await previewSwipe(
                             udid: device.udid,
                             startX: startCoords.x, startY: startCoords.y,
                             endX: endCoords.x, endY: endCoords.y,
                             duration: min(pressDuration, 2.0)
                         )
                         await MainActor.run {
-                            lastTapCoordinate = "滑动: (\(startCoords.x),\(startCoords.y)) -> (\(endCoords.x),\(endCoords.y))" + (ok ? "" : " ⚠️ 未执行(真机需 go-ios UI 后端)")
+                            lastTapCoordinate = "滑动: (\(startCoords.x),\(startCoords.y)) -> (\(endCoords.x),\(endCoords.y))" + (ok ? "" : " ⚠️ 未执行")
                         }
                     }
                 }
@@ -288,6 +292,74 @@ struct ScreenPreviewView: View {
         pressStartTime = nil
     }
 
+    // MARK: - 自动化后端（Appium 优先）
+
+    private func ensurePreviewSession(udid: String) async {
+        do {
+            try await backend.ensureSession(udid: udid, bundleId: nil, platformVersion: nil)
+        } catch {
+            Logger.shared.warning("预览自动化会话不可用: \(error.localizedDescription)")
+        }
+    }
+
+    private func previewTap(udid: String, x: Int, y: Int) async -> Bool {
+        await ensurePreviewSession(udid: udid)
+        do {
+            try await backend.tap(udid: udid, x: x, y: y)
+            return true
+        } catch {
+            Logger.shared.warning("Appium 预览点击失败，回退 CLI: \(error.localizedDescription)")
+            return await DeviceService.shared.tap(udid: udid, x: x, y: y)
+        }
+    }
+
+    private func previewLongPress(udid: String, x: Int, y: Int, duration: TimeInterval) async -> Bool {
+        await ensurePreviewSession(udid: udid)
+        do {
+            try await backend.longPress(udid: udid, x: x, y: y, duration: duration)
+            return true
+        } catch {
+            Logger.shared.warning("Appium 预览长按失败，回退 CLI: \(error.localizedDescription)")
+            return await DeviceService.shared.longPress(udid: udid, x: x, y: y, duration: duration)
+        }
+    }
+
+    private func previewSwipe(udid: String,
+                              startX: Int, startY: Int,
+                              endX: Int, endY: Int,
+                              duration: TimeInterval) async -> Bool {
+        await ensurePreviewSession(udid: udid)
+        do {
+            try await backend.swipe(udid: udid,
+                                    fromX: startX, fromY: startY,
+                                    toX: endX, toY: endY,
+                                    duration: duration)
+            return true
+        } catch {
+            Logger.shared.warning("Appium 预览滑动失败，回退 CLI: \(error.localizedDescription)")
+            return await DeviceService.shared.swipe(udid: udid,
+                                                    startX: startX, startY: startY,
+                                                    endX: endX, endY: endY,
+                                                    duration: duration)
+        }
+    }
+
+    private func previewPress(_ button: HardwareButton, udid: String) async -> Bool {
+        await ensurePreviewSession(udid: udid)
+        do {
+            try await backend.pressButton(udid: udid, button: button)
+            return true
+        } catch {
+            Logger.shared.warning("Appium 预览按键失败，回退 CLI: \(error.localizedDescription)")
+            switch button {
+            case .home: return await DeviceService.shared.pressHome(udid: udid)
+            case .lock: return await DeviceService.shared.lockScreen(udid: udid)
+            case .volumeUp: return await DeviceService.shared.pressVolumeUp(udid: udid)
+            case .volumeDown: return await DeviceService.shared.pressVolumeDown(udid: udid)
+            }
+        }
+    }
+
     // MARK: - 硬件按钮
 
     private func hardwareButton(_ title: String, icon: String, type: EventType) -> some View {
@@ -298,10 +370,10 @@ struct ScreenPreviewView: View {
             }
             Task {
                 switch type {
-                case .homeButton: _ = await DeviceService.shared.pressHome(udid: device.udid)
-                case .lockScreen: _ = await DeviceService.shared.lockScreen(udid: device.udid)
-                case .volumeUp: _ = await DeviceService.shared.pressVolumeUp(udid: device.udid)
-                case .volumeDown: _ = await DeviceService.shared.pressVolumeDown(udid: device.udid)
+                case .homeButton: _ = await previewPress(.home, udid: device.udid)
+                case .lockScreen: _ = await previewPress(.lock, udid: device.udid)
+                case .volumeUp: _ = await previewPress(.volumeUp, udid: device.udid)
+                case .volumeDown: _ = await previewPress(.volumeDown, udid: device.udid)
                 case .shake: _ = await DeviceService.shared.shake(udid: device.udid)
                 default: break
                 }
