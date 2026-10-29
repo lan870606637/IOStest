@@ -76,8 +76,33 @@ actor DeviceSessionManager {
             capabilities["appium:platformVersion"] = platformVersion
         }
 
+        for (key, value) in Self.signingCapabilities() {
+            capabilities[key] = value
+        }
+
         Logger.shared.info("创建 Appium 会话: udid=\(udid), bundleId=\(bundleId ?? "-")")
         return try await client.createSession(capabilities)
+    }
+
+    /// 真机签名参数：完全由设置页提供，留空则不传（模拟器场景）。
+    private static func signingCapabilities() -> [String: Any] {
+        let config = AppConfig.shared
+        let team = config.developerTeamID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let identity = config.signingIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let bundle = config.wdaBundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var capabilities: [String: Any] = [:]
+        if !team.isEmpty {
+            capabilities["appium:xcodeOrgId"] = team
+            capabilities["appium:allowProvisioningDeviceRegistration"] = true
+        }
+        if !identity.isEmpty {
+            capabilities["appium:xcodeSigningId"] = identity
+        }
+        if !bundle.isEmpty {
+            capabilities["appium:updatedWDABundleId"] = bundle
+        }
+        return capabilities
     }
 
     func sessionId(for udid: String) -> String? {

@@ -37,6 +37,11 @@ final class AppConfig: ObservableObject, Codable {
     @Published var testTargetName: String = "iOSStressTestUITests"
     @Published var derivedDataPath: String = ""
 
+    // 真机签名（WDA）
+    @Published var developerTeamID: String = ""
+    @Published var signingIdentity: String = "Apple Development"
+    @Published var wdaBundleID: String = ""
+
     enum CodingKeys: String, CodingKey {
         case defaultScreenWidth, defaultScreenHeight
         case screenshotRefreshInterval, devicePollInterval
@@ -46,6 +51,7 @@ final class AppConfig: ObservableObject, Codable {
         case logLevel, maxLogFileSize
         case recordingAutoDelay, recordingMinDelay, recordingMaxDelay
         case xcodeProjectPath, testTargetName, derivedDataPath
+        case developerTeamID, signingIdentity, wdaBundleID
     }
 
     init() {}
@@ -71,6 +77,9 @@ final class AppConfig: ObservableObject, Codable {
         xcodeProjectPath = try container.decodeIfPresent(String.self, forKey: .xcodeProjectPath) ?? ""
         testTargetName = try container.decodeIfPresent(String.self, forKey: .testTargetName) ?? "iOSStressTestUITests"
         derivedDataPath = try container.decodeIfPresent(String.self, forKey: .derivedDataPath) ?? ""
+        developerTeamID = try container.decodeIfPresent(String.self, forKey: .developerTeamID) ?? ""
+        signingIdentity = try container.decodeIfPresent(String.self, forKey: .signingIdentity) ?? "Apple Development"
+        wdaBundleID = try container.decodeIfPresent(String.self, forKey: .wdaBundleID) ?? ""
     }
 
     func encode(to encoder: Encoder) throws {
@@ -94,6 +103,9 @@ final class AppConfig: ObservableObject, Codable {
         try container.encode(xcodeProjectPath, forKey: .xcodeProjectPath)
         try container.encode(testTargetName, forKey: .testTargetName)
         try container.encode(derivedDataPath, forKey: .derivedDataPath)
+        try container.encode(developerTeamID, forKey: .developerTeamID)
+        try container.encode(signingIdentity, forKey: .signingIdentity)
+        try container.encode(wdaBundleID, forKey: .wdaBundleID)
     }
 
     // MARK: - 持久化

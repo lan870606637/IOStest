@@ -194,6 +194,24 @@ enum HostEnvironment {
             fix: driverOK ? nil : "APPIUM_HOME=\(appiumHome) appium driver install xcuitest"
         ))
 
+        // 6. 代码签名证书（真机必需）
+        let identitiesOutput = ProcessRunner.shared.run(
+            "/usr/bin/security",
+            arguments: ["find-identity", "-v", "-p", "codesigning"]
+        ).stdout
+        let identityLines = identitiesOutput
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { $0.contains("Apple Development") || $0.contains("Apple Distribution") }
+        result.append(HostEnvironmentCheck(
+            name: "签名证书",
+            status: identityLines.isEmpty ? .failed : .ok,
+            detail: identityLines.first ?? "未找到 Apple Development 证书",
+            fix: identityLines.isEmpty
+                ? "Xcode → Settings → Accounts → Manage Certificates → + → Apple Development"
+                : nil
+        ))
+
         return result
     }
 }

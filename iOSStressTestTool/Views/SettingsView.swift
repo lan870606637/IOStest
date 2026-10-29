@@ -99,6 +99,34 @@ struct SettingsView: View {
                     .padding(8)
                 }
 
+                // 真机签名
+                GroupBox("真机签名（WDA）") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Team ID")
+                                .frame(width: 140, alignment: .trailing)
+                            TextField("例如 ABCDE12345", text: $config.developerTeamID)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        HStack {
+                            Text("签名身份")
+                                .frame(width: 140, alignment: .trailing)
+                            TextField("Apple Development", text: $config.signingIdentity)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        HStack {
+                            Text("WDA Bundle ID")
+                                .frame(width: 140, alignment: .trailing)
+                            TextField("例如 com.yourname.WebDriverAgentRunner", text: $config.wdaBundleID)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        Text("Xcode → Settings → Accounts 登录 Apple ID；Team ID 可从证书名称括号或开发者账号获取。免费账号签名 7 天有效。")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(8)
+                }
+
                 // 日志设置
                 GroupBox("日志设置") {
                     VStack(alignment: .leading, spacing: 12) {
