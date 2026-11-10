@@ -15,6 +15,8 @@ actor DeviceSessionManager {
     private var records: [String: SessionRecord] = [:]
     private var inFlight: [String: Task<String, Error>] = [:]
     private var client: AppiumClient?
+    /// 下一次建会话时强制重装 WDA（免费证书 7 天到期后重签用）
+    private var forceNewWDA = false
 
     // MARK: - 会话
 
@@ -80,6 +82,12 @@ actor DeviceSessionManager {
             capabilities[key] = value
         }
 
+        if forceNewWDA {
+            // 让 Appium 卸载旧 WDA，用当前证书重新签名安装
+            capabilities["appium:useNewWDA"] = true
+            forceNewWDA = false
+        }
+
         Logger.shared.info("创建 Appium 会话: udid=\(udid), bundleId=\(bundleId ?? "-")")
         return try await client.createSession(capabilities)
     }
@@ -128,6 +136,13 @@ actor DeviceSessionManager {
         for (_, record) in snapshot {
             await client.deleteSession(record.id)
         }
+    }
+
+    /// 免费证书到期后调用：关闭现有会话，下一次建会话强制重装 WDA。
+    func requestWDAReinstall() async {
+        forceNewWDA = true
+        await closeAll()
+        Logger.shared.info("已请求重装 WDA：下一次会话将重新签名安装")
     }
 
     func shutdown() async {

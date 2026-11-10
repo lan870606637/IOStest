@@ -6,6 +6,7 @@ struct SettingsView: View {
     @StateObject private var config = AppConfig.shared
     @State private var environmentChecks: [HostEnvironmentCheck] = []
     @State private var appiumState = "未启动"
+    @State private var wdaStatus = ""
 
     var body: some View {
         ScrollView {
@@ -123,6 +124,14 @@ struct SettingsView: View {
                         Text("Xcode → Settings → Accounts 登录 Apple ID；Team ID 可从证书名称括号或开发者账号获取。免费账号签名 7 天有效。")
                             .font(.caption)
                             .foregroundColor(.secondary)
+
+                        HStack(spacing: 12) {
+                            Button("重签 WDA（下次会话）") { reinstallWDA() }
+                            Text(wdaStatus)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                     .padding(8)
                 }
@@ -323,6 +332,16 @@ struct SettingsView: View {
         case .ok: return .green
         case .warning: return .orange
         case .failed: return .red
+        }
+    }
+
+    private func reinstallWDA() {
+        wdaStatus = "请求中..."
+        Task {
+            await DeviceSessionManager.shared.requestWDAReinstall()
+            await MainActor.run {
+                wdaStatus = "已请求：下次会话将重装 WDA（约 5–10 分钟）"
+            }
         }
     }
 
