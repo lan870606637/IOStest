@@ -36,6 +36,8 @@ final class EventExecutor: ObservableObject {
     private var strategyTrace: [UUID: String] = [:]
     /// 记录截图事件保存的文件路径
     private var screenshotTrace: [UUID: String] = [:]
+    /// 当前任务名，截图按任务建子文件夹
+    private var currentTaskFolder: String?
 
     var onProgress: ((ExecutionProgress) -> Void)?
     var onEventComplete: ((TestEvent, EventStatus, String?) -> Void)?
@@ -50,6 +52,9 @@ final class EventExecutor: ObservableObject {
             logger.warning("已有任务在执行中")
             return
         }
+
+        currentTaskFolder = Self.sanitizeFolderName(task.name)
+        defer { currentTaskFolder = nil }
 
         await MainActor.run {
             isExecuting = true
@@ -213,6 +218,18 @@ final class EventExecutor: ObservableObject {
 
     private func takeScreenshotPath(_ event: TestEvent) -> String? {
         screenshotTrace.removeValue(forKey: event.id)
+    }
+
+    private static func sanitizeFolderName(_ name: String) -> String {
+        let invalid = CharacterSet(charactersIn: "/\\:*?\"<>|")
+        let cleaned = name
+            .components(separatedBy: invalid)
+            .joined(separator: "_")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.isEmpty || cleaned == "." || cleaned == ".." {
+            return "未命名任务"
+        }
+        return String(cleaned.prefix(80))
     }
 
     /// 轮询等待控件出现；超时返回 nil，会话错误继续抛出。
@@ -536,7 +553,8 @@ final class EventExecutor: ObservableObject {
             return (.failed, "截图失败")
         }
         let name = event.remark.isEmpty ? "screenshot" : event.remark
-        if let path = screenshotService.saveScreenshot(screenshot, name: name) {
+        let subfolder = currentTaskFolder ?? "未分组"
+        if let path = screenshotService.saveScreenshot(screenshot, name: name, subfolder: subfolder) {
             recordScreenshotPath(event, path)
         }
         return (.success, nil)

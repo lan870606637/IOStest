@@ -92,7 +92,7 @@ struct SettingsView: View {
                                 config.save()
                             }
                         }
-                        Text("截图事件和手动截图都会保存到这个目录。")
+                        Text("截图事件会按任务名建子文件夹，例如 目录/任务名/，不同任务的截图不会混在一起。")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .padding(.leading, 148)
