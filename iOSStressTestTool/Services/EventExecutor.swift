@@ -152,7 +152,16 @@ final class EventExecutor: ObservableObject {
     /// 单步执行：先确保自动化会话，再执行一个事件。
     func executeSingleEvent(_ event: TestEvent,
                             deviceUDID: String,
-                            bundleId: String?) async -> (EventStatus, String?) {
+                            bundleId: String?,
+                            taskName: String?) async -> (EventStatus, String?) {
+        let runStamp = DateFormatter.fileNameFormatter.string(from: Date())
+        currentTaskFolder = "\(Self.sanitizeFolderName(taskName ?? "未分组"))_单步_\(runStamp)"
+        currentLoopIndex = 1
+        defer {
+            currentTaskFolder = nil
+            currentLoopIndex = 1
+        }
+
         let device = deviceService.devices.first { $0.udid == deviceUDID }
         let platformVersion = device?.osVersion.replacingOccurrences(of: "iOS ", with: "")
         do {

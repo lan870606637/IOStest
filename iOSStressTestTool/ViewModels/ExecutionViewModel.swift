@@ -100,7 +100,8 @@ final class ExecutionViewModel: ObservableObject {
             let (status, error) = await executor.executeSingleEvent(
                 event,
                 deviceUDID: deviceUDID,
-                bundleId: bundleId
+                bundleId: bundleId,
+                taskName: task.name
             )
             await MainActor.run {
                 self.runningEventID = nil
