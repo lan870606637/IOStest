@@ -12,6 +12,11 @@ struct TaskListView: View {
     @State private var newTaskLoopCount = 1
     @State private var showEventEditor = false
     @State private var editingEventIndex: Int?
+    @State private var showEditTask = false
+    @State private var editingTaskID: UUID?
+    @State private var editTaskName = ""
+    @State private var editTaskGroup = ""
+    @State private var editTaskLoopCount = 1
 
     var body: some View {
         HSplitView {
@@ -43,6 +48,7 @@ struct TaskListView: View {
                 )) { task in
                     TaskRow(task: task)
                         .contextMenu {
+                            Button("编辑任务") { beginEditTask(task) }
                             Button("复制任务") { taskVM.duplicateTask(task) }
                             Divider()
                             Button("删除任务", role: .destructive) { taskVM.deleteTask(task) }
@@ -100,6 +106,10 @@ struct TaskListView: View {
                     .foregroundColor(.secondary)
                 }
                 Spacer()
+
+                Button(action: { beginEditTask(task) }) {
+                    Label("编辑", systemImage: "pencil")
+                }
 
                 // 执行按钮
                 Button(action: { startExecution(task) }) {
@@ -196,17 +206,23 @@ struct TaskListView: View {
             }
         }
         .sheet(isPresented: $showEventEditor) {
-            if let index = editingEventIndex, let task = taskVM.selectedTask,
-               index < task.events.count {
+            if let task = taskVM.selectedTask {
                 EventEditorView(
-                    event: task.events[index],
+                    event: currentEditingEvent(for: task),
                     onSave: { updated in
-                        taskVM.updateEvent(in: task.id, at: index, event: updated)
+                        if let index = editingEventIndex, index < task.events.count {
+                            taskVM.updateEvent(in: task.id, at: index, event: updated)
+                        } else {
+                            taskVM.addEvent(to: task.id, event: updated)
+                        }
                         showEventEditor = false
                     },
                     onCancel: { showEventEditor = false }
                 )
             }
+        }
+        .sheet(isPresented: $showEditTask) {
+            editTaskSheet
         }
     }
 
@@ -237,6 +253,59 @@ struct TaskListView: View {
     }
 
     // MARK: - 辅助方法
+
+    private func currentEditingEvent(for task: TestTask) -> TestEvent {
+        if let index = editingEventIndex, index < task.events.count {
+            return task.events[index]
+        }
+        return TestEvent(type: .click)
+    }
+
+    private var editTaskSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("编辑任务").font(.headline)
+            TextField("任务名称", text: $editTaskName)
+                .textFieldStyle(.roundedBorder)
+            TextField("分组", text: $editTaskGroup)
+                .textFieldStyle(.roundedBorder)
+            Stepper("循环次数: \(editTaskLoopCount)", value: $editTaskLoopCount, in: 1...100000)
+            HStack {
+                Spacer()
+                Button("取消") { showEditTask = false }
+                Button("保存") { saveEditedTask() }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .frame(width: 340)
+    }
+
+    private func beginEditTask(_ task: TestTask) {
+        editingTaskID = task.id
+        editTaskName = task.name
+        editTaskGroup = task.group
+        editTaskLoopCount = task.loopCount
+        showEditTask = true
+    }
+
+    private func saveEditedTask() {
+        guard let id = editingTaskID,
+              let task = taskVM.tasks.first(where: { $0.id == id }) else {
+            showEditTask = false
+            return
+        }
+
+        var updated = task
+        let name = editTaskName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let group = editTaskGroup.trimmingCharacters(in: .whitespacesAndNewlines)
+        updated.name = name.isEmpty ? task.name : name
+        updated.group = group.isEmpty ? "默认分组" : group
+        updated.loopCount = max(1, editTaskLoopCount)
+
+        taskVM.updateTask(updated)
+        taskVM.saveTasks()
+        showEditTask = false
+    }
 
     private func startExecution(_ task: TestTask) {
         guard let device = deviceVM.selectedDevice else { return }
@@ -325,6 +394,7 @@ struct EventRow: View {
         case .swipe: return .orange
         case .imageRecognitionClick: return .purple
         case .ocrTextClick: return .cyan
+        case .popupButton: return .pink
         case .screenshot, .compareScreenshot: return .green
         case .assertion: return .yellow
         case .eventGroup: return .indigo
@@ -345,6 +415,8 @@ struct EventRow: View {
             return event.templateName ?? ""
         case .ocrTextClick:
             return event.targetText ?? ""
+        case .popupButton:
+            return event.popupButtonText ?? ""
         case .killApp, .launchApp:
             return event.bundleIdentifier ?? ""
         default: break

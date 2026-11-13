@@ -46,7 +46,7 @@ struct EventEditorView: View {
                             }
 
                             HStack {
-                                Text("延迟(秒)")
+                                Text("等待(秒)")
                                     .frame(width: 80, alignment: .trailing)
                                 TextField("", value: $event.delay, format: .number)
                                     .textFieldStyle(.roundedBorder)
