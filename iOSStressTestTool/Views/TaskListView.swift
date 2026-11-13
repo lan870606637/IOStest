@@ -235,13 +235,20 @@ struct TaskListView: View {
                 .textFieldStyle(.roundedBorder)
             TextField("分组", text: $newTaskGroup)
                 .textFieldStyle(.roundedBorder)
-            Stepper("循环次数: \(newTaskLoopCount)", value: $newTaskLoopCount, in: 1...100000)
+            HStack {
+                Text("循环次数")
+                    .frame(width: 70, alignment: .trailing)
+                TextField("", value: $newTaskLoopCount, format: .number)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 90)
+                Text("次")
+            }
             HStack {
                 Spacer()
                 Button("取消") { showAddTask = false }
                 Button("创建") {
                     guard !newTaskName.isEmpty else { return }
-                    taskVM.addTask(name: newTaskName, group: newTaskGroup, loopCount: newTaskLoopCount)
+                    taskVM.addTask(name: newTaskName, group: newTaskGroup, loopCount: max(1, newTaskLoopCount))
                     newTaskName = ""
                     showAddTask = false
                 }
@@ -268,7 +275,14 @@ struct TaskListView: View {
                 .textFieldStyle(.roundedBorder)
             TextField("分组", text: $editTaskGroup)
                 .textFieldStyle(.roundedBorder)
-            Stepper("循环次数: \(editTaskLoopCount)", value: $editTaskLoopCount, in: 1...100000)
+            HStack {
+                Text("循环次数")
+                    .frame(width: 70, alignment: .trailing)
+                TextField("", value: $editTaskLoopCount, format: .number)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 90)
+                Text("次")
+            }
             HStack {
                 Spacer()
                 Button("取消") { showEditTask = false }
