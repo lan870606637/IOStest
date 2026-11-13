@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // MARK: - 屏幕预览视图
 struct ScreenPreviewView: View {
@@ -47,6 +48,12 @@ struct ScreenPreviewView: View {
                 Stepper("间隔 \(String(format: "%.1f", refreshInterval))s",
                         value: $refreshInterval, in: 0.5...10, step: 0.5)
                     .frame(width: 160)
+
+                if isCapturing {
+                    ProgressView()
+                        .scaleEffect(0.5)
+                        .frame(width: 16, height: 16)
+                }
 
                 Button(action: { captureScreenshot() }) {
                     Label("截图", systemImage: "camera")
@@ -110,8 +117,8 @@ struct ScreenPreviewView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .overlay {
-                        if isCapturing {
-                            ProgressView("正在获取截图（首次需建立 WDA 会话）...")
+                        if isCapturing && (previewImage == nil || !isAutoRefreshing) {
+                            ProgressView(previewImage == nil ? "正在建立 WDA 会话并获取截图..." : "正在获取截图...")
                                 .padding(12)
                                 .background(.regularMaterial)
                                 .cornerRadius(8)
@@ -172,6 +179,11 @@ struct ScreenPreviewView: View {
         }
         .onDisappear {
             stopAutoRefresh()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .singleStepDidComplete)) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                captureScreenshot()
+            }
         }
     }
 
@@ -398,16 +410,19 @@ struct ScreenPreviewView: View {
     // MARK: - 截图与刷新
 
     private func captureScreenshot() {
+        guard !isCapturing else { return }
         guard let device = deviceVM.selectedDevice else { return }
+        isCapturing = true
+
         Task {
-            await MainActor.run { isCapturing = true }
             screenshotService.invalidateCache(for: device.udid)
 
             var image: NSImage?
             if device.deviceType == .physical {
                 image = await captureWithAppium(device: device)
             }
-            if image == nil {
+            // 自动刷新时只走 Appium，避免 go-ios 隧道兜底把刷新卡住
+            if image == nil && !isAutoRefreshing {
                 image = await screenshotService.captureScreenshot(deviceUDID: device.udid,
                                                                   deviceType: device.deviceType)
             }

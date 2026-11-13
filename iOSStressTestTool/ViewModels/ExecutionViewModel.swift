@@ -112,6 +112,7 @@ final class ExecutionViewModel: ObservableObject {
                     msg = "单步失败: \(event.type.displayName) | \(error ?? "")"
                 }
                 self.appendLog(msg)
+                NotificationCenter.default.post(name: .singleStepDidComplete, object: nil)
             }
         }
     }
@@ -135,6 +136,10 @@ final class ExecutionViewModel: ObservableObject {
     func exportLog() -> String {
         executionLog.joined(separator: "\n")
     }
+}
+
+extension Notification.Name {
+    static let singleStepDidComplete = Notification.Name("iOSStressTestTool.singleStepDidComplete")
 }
 
 extension DateFormatter {
