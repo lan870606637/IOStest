@@ -6,10 +6,15 @@ struct ScreenPreviewView: View {
     @ObservedObject var deviceVM: DeviceViewModel
     @ObservedObject var recordingVM: RecordingViewModel
     @ObservedObject var executionVM: ExecutionViewModel
+    @ObservedObject var taskVM: TaskViewModel
 
     @StateObject private var screenshotService = ScreenshotService.shared
     private let backend = AppiumBackend()
     @State private var isCapturing = false
+
+    // 录制目标与进度都存在 RecordingViewModel 里：这个视图在切 Tab 时会被重建，
+    // 状态放 @State 会丢，恢复后会把已提交的事件重复追加一遍。
+    @State private var showNoTaskAlert = false
 
     @State private var previewImage: NSImage?
     @State private var isAutoRefreshing = true
@@ -73,6 +78,19 @@ struct ScreenPreviewView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(Color.orange.opacity(0.12))
+            }
+
+            if recordingVM.state == .recording {
+                HStack(spacing: 6) {
+                    Spacer()
+                    Image(systemName: "record.circle")
+                    Text("录制中：点击 / 长按 / 滑动都会自动加入「\(recordingVM.recordTargetName)」")
+                }
+                .font(.caption)
+                .foregroundColor(.red)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.red.opacity(0.10))
             }
 
             Divider()
@@ -171,19 +189,49 @@ struct ScreenPreviewView: View {
                         .padding(4)
                     }
 
-                    if recordingVM.state == .recording {
-                        GroupBox("录制中") {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
+                    // 录制开关：开启后，预览里的点击/长按/滑动都会自动追加到当前任务
+                    GroupBox("录制") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if recordingVM.state == .recording {
+                                HStack(spacing: 6) {
                                     Circle().fill(.red).frame(width: 8, height: 8)
                                     Text(recordingVM.formattedTime)
                                         .font(.system(.body, design: .monospaced))
+                                    Spacer()
+                                    Text("\(recordingVM.eventCount) 条")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
-                                Text("事件数: \(recordingVM.eventCount)")
+                                Text("→ \(recordingVM.recordTargetName)")
                                     .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(2)
+
+                                Button(action: { stopRecording() }) {
+                                    Label("停止录制", systemImage: "stop.fill")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.red)
+                            } else {
+                                Button(action: { startRecording() }) {
+                                    Label("开始录制", systemImage: "record.circle")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.red)
+                                .disabled(deviceVM.selectedDevice == nil || executionVM.isExecuting)
+                                .help("把预览里的点击/滑动自动录进当前选中的任务")
                             }
-                            .padding(4)
+
+                            Divider()
+
+                            Text(targetTaskHint)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
                         }
+                        .padding(4)
                     }
 
                     Spacer()
@@ -212,6 +260,52 @@ struct ScreenPreviewView: View {
                 captureScreenshot()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .wdaResigningStarted)) { _ in
+            stopAutoRefresh()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .wdaResigningFinished)) { _ in
+            if isAutoRefreshing && !executionVM.isExecuting {
+                startAutoRefresh()
+            }
+        }
+        .onReceive(recordingVM.$recordedEvents) { _ in
+            // 每录到一条就立刻追加到目标任务，事件列表能实时看到
+            guard recordingVM.state == .recording else { return }
+            recordingVM.commitNewRecordedEvents()
+        }
+        .alert("请先选择一个任务", isPresented: $showNoTaskAlert) {
+            Button("知道了", role: .cancel) {}
+        } message: {
+            Text("录制的事件会自动加进当前选中的任务（保留它的分组）。先在左侧任务列表里选一个任务，再点「录制」。")
+        }
+    }
+
+    /// 录制按钮下方的一行提示：告诉用户"现在会录到哪个任务"
+    private var targetTaskHint: String {
+        if recordingVM.state == .recording {
+            return "录到：\(recordingVM.recordTargetName)"
+        }
+        guard let task = taskVM.selectedTask else { return "先在左侧选一个任务" }
+        return "录到：\(task.name) · \(task.group)"
+    }
+
+    // MARK: - 录制（自动追加到当前任务）
+
+    private func startRecording() {
+        guard let device = deviceVM.selectedDevice else { return }
+        guard let task = taskVM.selectedTask else {
+            showNoTaskAlert = true
+            return
+        }
+        // 目标锁定在"开始录制时选中的任务"，录制中切任务不会记错地方
+        recordingVM.startRecording(deviceUDID: device.udid,
+                                   deviceType: device.deviceType,
+                                   targetTask: task,
+                                   taskVM: taskVM)
+    }
+
+    private func stopRecording() {
+        recordingVM.stopRecordingAndCommit()   // 收尾提交 + 落盘
     }
 
     // MARK: - 手势处理

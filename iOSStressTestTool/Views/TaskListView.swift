@@ -1,5 +1,11 @@
 import SwiftUI
 
+private struct WDAAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+}
+
 // MARK: - 任务列表视图
 struct TaskListView: View {
     @ObservedObject var taskVM: TaskViewModel
@@ -20,6 +26,9 @@ struct TaskListView: View {
     @State private var editTaskLoopCount = 1
     @State private var profileInfo: WDAProfileInfo?
     @State private var profileLookupDone = false
+    @State private var isSigningWDA = false
+    @State private var wdaAlert: WDAAlert?
+    @State private var showClearConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -91,7 +100,8 @@ struct TaskListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            ScreenPreviewView(deviceVM: deviceVM, recordingVM: recordingVM, executionVM: executionVM)
+            ScreenPreviewView(deviceVM: deviceVM, recordingVM: recordingVM,
+                              executionVM: executionVM, taskVM: taskVM)
                 .frame(minWidth: 480, idealWidth: 520)
         }
         }
@@ -100,6 +110,11 @@ struct TaskListView: View {
             refreshProfileInfo()
         }
         .onChange(of: deviceVM.devices) { _, _ in selectConnectedPhysicalIfNeeded() }
+        .alert(item: $wdaAlert) { alert in
+            Alert(title: Text(alert.title),
+                  message: Text(alert.message),
+                  dismissButton: .default(Text("知道了")))
+        }
     }
 
     // MARK: - 真机选择栏
@@ -182,6 +197,23 @@ struct TaskListView: View {
                     .foregroundColor(.orange)
             }
 
+            if profileLookupDone && needsWDARegistration {
+                Button {
+                    registerAndResignWDA()
+                } label: {
+                    if isSigningWDA {
+                        HStack(spacing: 4) {
+                            ProgressView().scaleEffect(0.5)
+                            Text("签名中...")
+                        }
+                    } else {
+                        Label("注册设备并重签 WDA", systemImage: "signature")
+                    }
+                }
+                .disabled(isSigningWDA || executionVM.isExecuting || executionVM.runningEventID != nil)
+                .help("当前设备不在 WDA profile 中，点击自动注册并重签")
+            }
+
             Spacer()
         }
         .padding(.horizontal, 12)
@@ -212,6 +244,103 @@ struct TaskListView: View {
         if seconds <= 86400 { return .red }
         if seconds <= 3 * 86400 { return .orange }
         return .secondary
+    }
+
+    private var needsWDARegistration: Bool {
+        guard profileLookupDone,
+              let device = deviceVM.selectedDevice,
+              device.deviceType == .physical else { return false }
+        guard let info = profileInfo else { return true }
+        if info.expiration <= Date() { return true }
+        if info.provisionedDevices.isEmpty { return false }
+        return !info.provisionedDevices.contains(device.udid)
+    }
+
+    private func registerAndResignWDA() {
+        guard !isSigningWDA,
+              !executionVM.isExecuting,
+              executionVM.runningEventID == nil,
+              let device = deviceVM.selectedDevice,
+              device.deviceType == .physical else { return }
+
+        isSigningWDA = true
+        NotificationCenter.default.post(name: .wdaResigningStarted, object: nil)
+
+        let platformVersion = device.osVersion.replacingOccurrences(of: "iOS ", with: "")
+
+        Task {
+            let manager = DeviceSessionManager.shared
+            await manager.closeSession(udid: device.udid)
+            await manager.requestWDAReinstall()
+
+            do {
+                try await AppiumBackend().ensureSession(udid: device.udid,
+                                                        bundleId: nil,
+                                                        platformVersion: platformVersion)
+                await manager.closeSession(udid: device.udid)
+
+                await MainActor.run {
+                    isSigningWDA = false
+                    NotificationCenter.default.post(name: .wdaResigningFinished, object: nil)
+                    refreshProfileInfo()
+                    wdaAlert = WDAAlert(title: "WDA 重签完成", message: """
+                    WDA 已重新签名并安装。
+
+                    请在手机上操作：
+                    1. 解锁 iPhone
+                    2. 如果出现“未受信任的开发者”，进入 设置 → 通用 → VPN 与设备管理 → Apple Development → 信任
+                    3. 回到本页，点设备栏的刷新按钮
+                    4. 先看屏幕预览，再执行任务
+
+                    如果手机没有出现信任提示，说明之前已经信任过，直接点刷新即可。
+                    """)
+                }
+            } catch {
+                await MainActor.run {
+                    isSigningWDA = false
+                    NotificationCenter.default.post(name: .wdaResigningFinished, object: nil)
+                    refreshProfileInfo()
+
+                    let message = error.localizedDescription
+                    if isDeviceLimitError(message) {
+                        wdaAlert = WDAAlert(title: "设备数量已达上限", message: """
+                        检测到设备数量可能已达到免费账号上限。
+
+                        免费 Apple ID 最多注册 3 台设备，设备注册 7 天后过期。
+
+                        处理方式：
+                        1. 等旧设备注册过期后再试（设备栏会显示 Profile 到期时间）
+                        2. 在 Xcode 或 developer.apple.com 移除不再使用的旧设备
+                        3. 换一个 Apple ID，或升级付费开发者账号（100 台/年）
+
+                        原始错误：
+                        \(message)
+                        """)
+                    } else {
+                        wdaAlert = WDAAlert(title: "WDA 重签失败", message: """
+                        自动注册/重签没有完成。
+
+                        请检查：
+                        - Xcode 是否已登录同一 Apple ID
+                        - 手机是否已解锁并信任电脑
+                        - 网络能否访问 Apple 服务器
+                        - 设置 → 真机签名 的 Team ID 是否正确
+
+                        错误信息：
+                        \(message)
+                        """)
+                    }
+                }
+            }
+        }
+    }
+
+    private func isDeviceLimitError(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return lower.contains("maximum number of registered")
+            || lower.contains("maximum number of iphone")
+            || lower.contains("device limit")
+            || lower.contains("reached the maximum")
     }
 
     private var selectedPhysicalUDID: String {
@@ -267,6 +396,16 @@ struct TaskListView: View {
                     Label("编辑", systemImage: "pencil")
                 }
 
+                Button(role: .destructive) {
+                    showClearConfirm = true
+                } label: {
+                    Label("清空", systemImage: "trash")
+                }
+                .disabled(task.events.isEmpty
+                          || executionVM.isExecuting
+                          || recordingVM.state == .recording)
+                .help("清空这个分组里的全部事件")
+
                 // 执行按钮
                 Button(action: { startExecution(task) }) {
                     Label("执行", systemImage: "play.fill")
@@ -275,7 +414,7 @@ struct TaskListView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
-                .disabled(executionVM.isExecuting || executionVM.runningEventID != nil || !canExecute)
+                .disabled(executionVM.isExecuting || executionVM.runningEventID != nil || isSigningWDA || !canExecute)
             }
             .padding()
             .background(Color(nsColor: .controlBackgroundColor))
@@ -289,7 +428,7 @@ struct TaskListView: View {
                         event: event,
                         index: index,
                         onRun: { runSingleEvent(event, task: task) },
-                        isRunDisabled: executionVM.isExecuting || executionVM.runningEventID != nil || !canExecute,
+                        isRunDisabled: executionVM.isExecuting || executionVM.runningEventID != nil || isSigningWDA || !canExecute,
                         isRunning: executionVM.runningEventID == event.id
                     )
                         .contextMenu {
@@ -385,6 +524,15 @@ struct TaskListView: View {
         }
         .sheet(isPresented: $showEditTask) {
             editTaskSheet
+        }
+        .alert("清空当前分组？", isPresented: $showClearConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("清空", role: .destructive) {
+                taskVM.clearEvents(of: task.id)
+                taskVM.saveTasks()
+            }
+        } message: {
+            Text("将删除「\(task.name) · \(task.group)」里的全部 \(task.events.count) 条事件，此操作不可撤销。")
         }
     }
 
@@ -484,7 +632,8 @@ struct TaskListView: View {
     }
 
     private func runSingleEvent(_ event: TestEvent, task: TestTask) {
-        guard canExecute,
+        guard !isSigningWDA,
+              canExecute,
               let device = deviceVM.selectedDevice,
               !executionVM.isExecuting,
               executionVM.runningEventID == nil else { return }
@@ -492,7 +641,8 @@ struct TaskListView: View {
     }
 
     private func startExecution(_ task: TestTask) {
-        guard executionVM.runningEventID == nil,
+        guard !isSigningWDA,
+              executionVM.runningEventID == nil,
               let device = deviceVM.selectedDevice,
               device.deviceType == .physical,
               device.status == .connected else { return }

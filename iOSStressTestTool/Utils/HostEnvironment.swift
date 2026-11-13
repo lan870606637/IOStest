@@ -262,6 +262,7 @@ struct WDAProfileInfo {
     let name: String
     let applicationIdentifier: String
     let expiration: Date
+    let provisionedDevices: Set<String>
 }
 
 extension HostEnvironment {
@@ -297,6 +298,7 @@ extension HostEnvironment {
                 let name = dict["Name"] as? String ?? file
                 let entitlements = dict["Entitlements"] as? [String: Any] ?? [:]
                 let appID = entitlements["application-identifier"] as? String ?? ""
+                let provisioned = Set(dict["ProvisionedDevices"] as? [String] ?? [])
 
                 var score = 1
                 if !wdaBundleID.isEmpty && appID.contains(wdaBundleID) { score += 4 }
@@ -306,7 +308,8 @@ extension HostEnvironment {
                 candidates.append((score,
                                    WDAProfileInfo(name: name,
                                                   applicationIdentifier: appID,
-                                                  expiration: expiration)))
+                                                  expiration: expiration,
+                                                  provisionedDevices: provisioned)))
             }
         }
 
@@ -318,4 +321,9 @@ extension HostEnvironment {
         }
         return best.info
     }
+}
+
+extension Notification.Name {
+    static let wdaResigningStarted = Notification.Name("iOSStressTestTool.wdaResigningStarted")
+    static let wdaResigningFinished = Notification.Name("iOSStressTestTool.wdaResigningFinished")
 }
