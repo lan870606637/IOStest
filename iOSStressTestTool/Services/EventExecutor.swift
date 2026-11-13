@@ -36,8 +36,10 @@ final class EventExecutor: ObservableObject {
     private var strategyTrace: [UUID: String] = [:]
     /// 记录截图事件保存的文件路径
     private var screenshotTrace: [UUID: String] = [:]
-    /// 当前任务名，截图按任务建子文件夹
+    /// 当前任务的截图子文件夹（任务名_执行时间）
     private var currentTaskFolder: String?
+    /// 当前循环序号，用于截图文件名前缀
+    private var currentLoopIndex = 1
 
     var onProgress: ((ExecutionProgress) -> Void)?
     var onEventComplete: ((TestEvent, EventStatus, String?) -> Void)?
@@ -53,8 +55,13 @@ final class EventExecutor: ObservableObject {
             return
         }
 
-        currentTaskFolder = Self.sanitizeFolderName(task.name)
-        defer { currentTaskFolder = nil }
+        let runStamp = DateFormatter.fileNameFormatter.string(from: Date())
+        currentTaskFolder = "\(Self.sanitizeFolderName(task.name))_\(runStamp)"
+        currentLoopIndex = 1
+        defer {
+            currentTaskFolder = nil
+            currentLoopIndex = 1
+        }
 
         await MainActor.run {
             isExecuting = true
@@ -82,6 +89,7 @@ final class EventExecutor: ObservableObject {
         logger.info("开始执行任务: \(task.name), 设备: \(deviceName), 循环次数: \(task.loopCount)")
 
         for loopIndex in 1...task.loopCount {
+            currentLoopIndex = loopIndex
             guard !shouldStop else {
                 logger.info("任务被手动停止")
                 break
@@ -552,7 +560,8 @@ final class EventExecutor: ObservableObject {
         guard let screenshot = await captureScreenshot(device: device) else {
             return (.failed, "截图失败")
         }
-        let name = event.remark.isEmpty ? "screenshot" : event.remark
+        let base = event.remark.isEmpty ? "screenshot" : event.remark
+        let name = "\(currentLoopIndex)_\(Self.sanitizeFolderName(base))"
         let subfolder = currentTaskFolder ?? "未分组"
         if let path = screenshotService.saveScreenshot(screenshot, name: name, subfolder: subfolder) {
             recordScreenshotPath(event, path)

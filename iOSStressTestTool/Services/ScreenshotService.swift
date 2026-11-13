@@ -16,6 +16,12 @@ final class ScreenshotService: ObservableObject {
     private var cache: [String: CachedScreenshot] = [:]
     private let cacheQueue = DispatchQueue(label: "com.stresstesttool.screenshot.cache")
 
+    private static let screenshotTimestampFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd_HHmmss_SSS"
+        return f
+    }()
+
     private struct CachedScreenshot {
         let image: NSImage
         let timestamp: Date
@@ -153,7 +159,7 @@ final class ScreenshotService: ObservableObject {
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         }
 
-        let timestamp = DateFormatter.fileNameFormatter.string(from: Date())
+        let timestamp = Self.screenshotTimestampFormatter.string(from: Date())
         let fileName = "\(name)_\(timestamp).png"
         let filePath = dir.appendingPathComponent(fileName)
 

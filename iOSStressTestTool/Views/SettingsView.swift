@@ -92,7 +92,7 @@ struct SettingsView: View {
                                 config.save()
                             }
                         }
-                        Text("截图事件会按任务名建子文件夹，例如 目录/任务名/，不同任务的截图不会混在一起。")
+                        Text("每次执行任务都会新建文件夹：目录/任务名_执行时间/；截图文件名以循环序号开头，例如 1_screenshot_...png。")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .padding(.leading, 148)
