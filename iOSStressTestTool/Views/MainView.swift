@@ -68,7 +68,8 @@ struct MainView: View {
                     TaskListView(
                         taskVM: taskVM,
                         deviceVM: deviceVM,
-                        executionVM: executionVM
+                        executionVM: executionVM,
+                        recordingVM: recordingVM
                     )
                 case .recordPreview:
                     HSplitView {

@@ -5,6 +5,7 @@ struct TaskListView: View {
     @ObservedObject var taskVM: TaskViewModel
     @ObservedObject var deviceVM: DeviceViewModel
     @ObservedObject var executionVM: ExecutionViewModel
+    @ObservedObject var recordingVM: RecordingViewModel
 
     @State private var showAddTask = false
     @State private var newTaskName = ""
@@ -87,6 +88,9 @@ struct TaskListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+
+            ScreenPreviewView(deviceVM: deviceVM, recordingVM: recordingVM)
+                .frame(minWidth: 360)
         }
         }
         .onAppear { selectConnectedPhysicalIfNeeded() }
@@ -224,7 +228,7 @@ struct TaskListView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
-                .disabled(executionVM.isExecuting || !canExecute)
+                .disabled(executionVM.isExecuting || executionVM.runningEventID != nil || !canExecute)
             }
             .padding()
             .background(Color(nsColor: .controlBackgroundColor))
@@ -234,7 +238,13 @@ struct TaskListView: View {
             // 事件列表
             List {
                 ForEach(Array(task.events.enumerated()), id: \.element.id) { index, event in
-                    EventRow(event: event, index: index)
+                    EventRow(
+                        event: event,
+                        index: index,
+                        onRun: { runSingleEvent(event, task: task) },
+                        isRunDisabled: executionVM.isExecuting || executionVM.runningEventID != nil || !canExecute,
+                        isRunning: executionVM.runningEventID == event.id
+                    )
                         .contextMenu {
                             Button("编辑") {
                                 editingEventIndex = index
@@ -426,8 +436,17 @@ struct TaskListView: View {
         showEditTask = false
     }
 
+    private func runSingleEvent(_ event: TestEvent, task: TestTask) {
+        guard canExecute,
+              let device = deviceVM.selectedDevice,
+              !executionVM.isExecuting,
+              executionVM.runningEventID == nil else { return }
+        executionVM.executeSingleEvent(event, task: task, deviceUDID: device.udid)
+    }
+
     private func startExecution(_ task: TestTask) {
-        guard let device = deviceVM.selectedDevice,
+        guard executionVM.runningEventID == nil,
+              let device = deviceVM.selectedDevice,
               device.deviceType == .physical,
               device.status == .connected else { return }
         executionVM.executeTask(task, deviceUDID: device.udid)
@@ -473,6 +492,9 @@ struct TaskRow: View {
 struct EventRow: View {
     let event: TestEvent
     let index: Int
+    var onRun: (() -> Void)? = nil
+    var isRunDisabled: Bool = false
+    var isRunning: Bool = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -506,6 +528,21 @@ struct EventRow: View {
             Text(String(format: "%.1fs", event.delay))
                 .font(.caption.monospacedDigit())
                 .foregroundColor(.secondary)
+
+            if let onRun {
+                if isRunning {
+                    ProgressView()
+                        .scaleEffect(0.5)
+                        .frame(width: 20, height: 20)
+                } else {
+                    Button(action: onRun) {
+                        Image(systemName: "play.circle")
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(isRunDisabled)
+                    .help("只执行这一条事件")
+                }
+            }
         }
     }
 

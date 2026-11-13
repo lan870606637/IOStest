@@ -149,6 +149,22 @@ final class EventExecutor: ObservableObject {
 
     // MARK: - 单事件执行
 
+    /// 单步执行：先确保自动化会话，再执行一个事件。
+    func executeSingleEvent(_ event: TestEvent,
+                            deviceUDID: String,
+                            bundleId: String?) async -> (EventStatus, String?) {
+        let device = deviceService.devices.first { $0.udid == deviceUDID }
+        let platformVersion = device?.osVersion.replacingOccurrences(of: "iOS ", with: "")
+        do {
+            try await backend.ensureSession(udid: deviceUDID,
+                                            bundleId: bundleId,
+                                            platformVersion: platformVersion)
+        } catch {
+            return (.failed, "建立自动化会话失败: \(error.localizedDescription)")
+        }
+        return await executeEvent(event, deviceUDID: deviceUDID)
+    }
+
     /// 执行单个事件，返回 (状态, 错误消息)
     func executeEvent(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
         let eventReport = EventReportData(event: event)

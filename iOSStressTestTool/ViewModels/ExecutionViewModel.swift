@@ -11,6 +11,7 @@ final class ExecutionViewModel: ObservableObject {
     @Published var totalLoops = 0
     @Published var currentEventIndex = 0
     @Published var totalEvents = 0
+    @Published var runningEventID: UUID?
 
     private let executor = EventExecutor.shared
     private let logger = Logger.shared
@@ -84,14 +85,31 @@ final class ExecutionViewModel: ObservableObject {
         appendLog("正在停止执行...")
     }
 
-    /// 执行单个事件 (用于调试)
-    func executeSingleEvent(_ event: TestEvent, deviceUDID: String) {
+    /// 执行单个事件 (任务列表里的单步按钮)
+    func executeSingleEvent(_ event: TestEvent, task: TestTask, deviceUDID: String) {
+        guard !isExecuting, runningEventID == nil else {
+            appendLog("当前已有执行中的任务或单步事件")
+            return
+        }
+
+        let bundleId = task.enabledEvents.compactMap { $0.bundleIdentifier }.first
+        runningEventID = event.id
+        appendLog("单步执行: \(event.type.displayName)" + (event.remark.isEmpty ? "" : " - \(event.remark)"))
+
         Task {
-            let (status, error) = await executor.executeEvent(event, deviceUDID: deviceUDID)
+            let (status, error) = await executor.executeSingleEvent(
+                event,
+                deviceUDID: deviceUDID,
+                bundleId: bundleId
+            )
             await MainActor.run {
-                let msg = status == .success
-                    ? "事件执行成功: \(event.type.displayName)"
-                    : "事件执行失败: \(error ?? "")"
+                self.runningEventID = nil
+                let msg: String
+                if status == .success {
+                    msg = "单步成功: \(event.type.displayName)"
+                } else {
+                    msg = "单步失败: \(event.type.displayName) | \(error ?? "")"
+                }
                 self.appendLog(msg)
             }
         }
