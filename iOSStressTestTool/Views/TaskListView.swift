@@ -18,6 +18,8 @@ struct TaskListView: View {
     @State private var editTaskName = ""
     @State private var editTaskGroup = ""
     @State private var editTaskLoopCount = 1
+    @State private var profileInfo: WDAProfileInfo?
+    @State private var profileLookupDone = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -93,7 +95,10 @@ struct TaskListView: View {
                 .frame(minWidth: 480, idealWidth: 520)
         }
         }
-        .onAppear { selectConnectedPhysicalIfNeeded() }
+        .onAppear {
+            selectConnectedPhysicalIfNeeded()
+            refreshProfileInfo()
+        }
         .onChange(of: deviceVM.devices) { _, _ in selectConnectedPhysicalIfNeeded() }
     }
 
@@ -148,7 +153,10 @@ struct TaskListView: View {
             }
 
             Button {
-                Task { await deviceVM.refreshDevices() }
+                Task {
+                    await deviceVM.refreshDevices()
+                    refreshProfileInfo()
+                }
             } label: {
                 if deviceVM.isRefreshing {
                     ProgressView()
@@ -157,14 +165,53 @@ struct TaskListView: View {
                     Image(systemName: "arrow.clockwise")
                 }
             }
-            .help("刷新真机列表")
+            .help("刷新真机列表和 WDA Profile")
             .disabled(deviceVM.isRefreshing)
+
+            if let info = profileInfo {
+                Divider().frame(height: 16)
+                Label(profileText(info), systemImage: "clock")
+                    .font(.caption)
+                    .foregroundColor(profileColor(info))
+                    .lineLimit(1)
+                    .help("\(info.name)\n\(info.applicationIdentifier)")
+            } else if profileLookupDone {
+                Divider().frame(height: 16)
+                Text("未找到 WDA Profile")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
 
             Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(Color(nsColor: .controlBackgroundColor))
+    }
+
+    private func refreshProfileInfo() {
+        let config = AppConfig.shared
+        profileInfo = HostEnvironment.currentWDAProfile(teamID: config.developerTeamID,
+                                                         wdaBundleID: config.wdaBundleID)
+        profileLookupDone = true
+    }
+
+    private func profileText(_ info: WDAProfileInfo) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        let seconds = info.expiration.timeIntervalSinceNow
+        if seconds <= 0 {
+            return "WDA Profile 已过期（\(formatter.string(from: info.expiration))）"
+        }
+        let days = max(0, Int(ceil(seconds / 86400)))
+        return "WDA Profile 到期 \(formatter.string(from: info.expiration))（剩 \(days) 天）"
+    }
+
+    private func profileColor(_ info: WDAProfileInfo) -> Color {
+        let seconds = info.expiration.timeIntervalSinceNow
+        if seconds <= 86400 { return .red }
+        if seconds <= 3 * 86400 { return .orange }
+        return .secondary
     }
 
     private var selectedPhysicalUDID: String {

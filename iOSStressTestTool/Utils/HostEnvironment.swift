@@ -255,3 +255,67 @@ enum HostEnvironment {
         return result
     }
 }
+
+// MARK: - WDA Provisioning Profile
+
+struct WDAProfileInfo {
+    let name: String
+    let applicationIdentifier: String
+    let expiration: Date
+}
+
+extension HostEnvironment {
+    /// 查找当前 Team 的 WDA provisioning profile，返回最新签发的一份。
+    static func currentWDAProfile(teamID: String, wdaBundleID: String) -> WDAProfileInfo? {
+        let fm = FileManager.default
+        let dirs = [
+            NSHomeDirectory() + "/Library/Developer/Xcode/UserData/Provisioning Profiles",
+            NSHomeDirectory() + "/Library/MobileDevice/Provisioning Profiles",
+        ]
+
+        var candidates: [(score: Int, info: WDAProfileInfo)] = []
+
+        for dir in dirs {
+            guard let files = try? fm.contentsOfDirectory(atPath: dir) else { continue }
+            for file in files where file.hasSuffix(".mobileprovision") {
+                let path = dir + "/" + file
+                let result = ProcessRunner.shared.run("/usr/bin/security",
+                                                      arguments: ["cms", "-D", "-i", path],
+                                                      timeout: 5)
+                guard result.isSuccess,
+                      let data = result.stdout.data(using: .utf8),
+                      let plist = try? PropertyListSerialization.propertyList(from: data,
+                                                                             options: [],
+                                                                             format: nil),
+                      let dict = plist as? [String: Any],
+                      let expiration = dict["ExpirationDate"] as? Date
+                else { continue }
+
+                let teams = dict["TeamIdentifier"] as? [String] ?? []
+                if !teamID.isEmpty && !teams.contains(teamID) { continue }
+
+                let name = dict["Name"] as? String ?? file
+                let entitlements = dict["Entitlements"] as? [String: Any] ?? [:]
+                let appID = entitlements["application-identifier"] as? String ?? ""
+
+                var score = 1
+                if !wdaBundleID.isEmpty && appID.contains(wdaBundleID) { score += 4 }
+                if appID.contains(".xctrunner") { score += 2 }
+                if name.contains("WebDriverAgent") || name.lowercased().contains("wda") { score += 2 }
+
+                candidates.append((score,
+                                   WDAProfileInfo(name: name,
+                                                  applicationIdentifier: appID,
+                                                  expiration: expiration)))
+            }
+        }
+
+        guard let best = candidates.max(by: { lhs, rhs in
+            if lhs.score != rhs.score { return lhs.score < rhs.score }
+            return lhs.info.expiration < rhs.info.expiration
+        }), best.score >= 4 else {
+            return nil
+        }
+        return best.info
+    }
+}
