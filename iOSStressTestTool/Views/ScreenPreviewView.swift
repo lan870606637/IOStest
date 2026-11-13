@@ -62,15 +62,18 @@ struct ScreenPreviewView: View {
                 // 设备屏幕预览
                 GeometryReader { geometry in
                     ZStack {
-                        if let image = previewImage {
+                        if let image = previewImage, let device = deviceVM.selectedDevice {
+                            let aspect = CGFloat(device.screenWidth) / CGFloat(device.screenHeight)
+                            let previewWidth = min(geometry.size.width * 0.7, geometry.size.height * aspect)
+                            let previewHeight = previewWidth / aspect
                             Image(nsImage: image)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(maxWidth: geometry.size.width * 0.7, maxHeight: geometry.size.height)
+                                .frame(width: previewWidth, height: previewHeight)
                                 .background(Color.black)
                                 .cornerRadius(12)
                                 .shadow(radius: 5)
-                                .gesture(tapAndDragGesture(in: geometry.size))
+                                .gesture(tapAndDragGesture(in: CGSize(width: previewWidth, height: previewHeight)))
                                 .overlay(dragOverlay)
                         } else {
                             VStack(spacing: 12) {
@@ -193,11 +196,8 @@ struct ScreenPreviewView: View {
                 let pressDuration = Date().timeIntervalSince(pressStartTime ?? Date())
                 let distance = hypot(value.location.x - start.x, value.location.y - start.y)
 
-                // 计算预览图在 geometry 中的实际大小
-                let imageAspect = CGFloat(device.screenWidth) / CGFloat(device.screenHeight)
-                let previewWidth = min(size.width * 0.7, size.height * imageAspect)
-                let previewHeight = previewWidth / imageAspect
-                let previewSize = CGSize(width: previewWidth, height: previewHeight)
+                // 手势坐标就是图片 frame 内的坐标，直接按这个尺寸映射
+                let previewSize = size
 
                 let adapter = CoordinateAdapter.shared
 
