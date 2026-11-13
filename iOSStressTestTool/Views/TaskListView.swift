@@ -143,8 +143,6 @@ struct TaskListView: View {
                     .foregroundColor(.secondary)
             }
 
-            Spacer()
-
             Button {
                 Task { await deviceVM.refreshDevices() }
             } label: {
@@ -157,6 +155,8 @@ struct TaskListView: View {
             }
             .help("刷新真机列表")
             .disabled(deviceVM.isRefreshing)
+
+            Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
