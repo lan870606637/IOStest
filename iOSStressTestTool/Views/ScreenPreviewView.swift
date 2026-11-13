@@ -49,12 +49,6 @@ struct ScreenPreviewView: View {
                         value: $refreshInterval, in: 0.5...10, step: 0.5)
                     .frame(width: 160)
 
-                if isCapturing {
-                    ProgressView()
-                        .scaleEffect(0.5)
-                        .frame(width: 16, height: 16)
-                }
-
                 Button(action: { captureScreenshot() }) {
                     Label("截图", systemImage: "camera")
                 }
