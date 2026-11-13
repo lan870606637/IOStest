@@ -59,7 +59,11 @@ struct TaskListView: View {
                 // 任务列表
                 List(taskVM.filteredTasks, selection: Binding(
                     get: { taskVM.selectedTask?.id },
-                    set: { id in taskVM.selectedTask = taskVM.tasks.first { $0.id == id } }
+                    set: { id in
+                        guard let id,
+                              let task = taskVM.tasks.first(where: { $0.id == id }) else { return }
+                        taskVM.selectedTask = task
+                    }
                 )) { task in
                     TaskRow(task: task)
                         .contextMenu {
@@ -86,23 +90,26 @@ struct TaskListView: View {
             }
             .frame(minWidth: 250, maxWidth: 350)
 
-            // 右侧: 任务详情与事件列表
-            if let task = taskVM.selectedTask {
-                taskDetailView(task)
-            } else {
-                VStack {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("选择一个任务查看详情")
-                        .foregroundColor(.secondary)
+            // 中间: 任务详情与事件列表
+            Group {
+                if let task = taskVM.selectedTask {
+                    taskDetailView(task)
+                } else {
+                    VStack {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        Text("选择一个任务查看详情")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(minWidth: 460, idealWidth: 600)
 
             ScreenPreviewView(deviceVM: deviceVM, recordingVM: recordingVM,
                               executionVM: executionVM, taskVM: taskVM)
-                .frame(minWidth: 480, idealWidth: 520)
+                .frame(minWidth: 480, idealWidth: 560, maxWidth: 720)
         }
         }
         .onAppear {
