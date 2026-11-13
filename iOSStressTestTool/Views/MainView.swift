@@ -75,7 +75,8 @@ struct MainView: View {
                     HSplitView {
                         ScreenPreviewView(
                             deviceVM: deviceVM,
-                            recordingVM: recordingVM
+                            recordingVM: recordingVM,
+                            executionVM: executionVM
                         )
                         .frame(minWidth: 420)
 

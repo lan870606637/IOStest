@@ -89,7 +89,7 @@ struct TaskListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            ScreenPreviewView(deviceVM: deviceVM, recordingVM: recordingVM)
+            ScreenPreviewView(deviceVM: deviceVM, recordingVM: recordingVM, executionVM: executionVM)
                 .frame(minWidth: 360)
         }
         }

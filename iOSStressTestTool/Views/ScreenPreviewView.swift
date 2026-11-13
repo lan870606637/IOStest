@@ -5,6 +5,7 @@ import Combine
 struct ScreenPreviewView: View {
     @ObservedObject var deviceVM: DeviceViewModel
     @ObservedObject var recordingVM: RecordingViewModel
+    @ObservedObject var executionVM: ExecutionViewModel
 
     @StateObject private var screenshotService = ScreenshotService.shared
     private let backend = AppiumBackend()
@@ -41,8 +42,13 @@ struct ScreenPreviewView: View {
 
                 Toggle("自动刷新", isOn: $isAutoRefreshing)
                     .toggleStyle(.switch)
+                    .disabled(executionVM.isExecuting)
                     .onChange(of: isAutoRefreshing) { _, newValue in
-                        if newValue { startAutoRefresh() } else { stopAutoRefresh() }
+                        if newValue {
+                            if !executionVM.isExecuting { startAutoRefresh() }
+                        } else {
+                            stopAutoRefresh()
+                        }
                     }
 
                 Stepper("间隔 \(String(format: "%.1f", refreshInterval))s",
@@ -55,6 +61,19 @@ struct ScreenPreviewView: View {
             }
             .padding()
             .background(Color(nsColor: .controlBackgroundColor))
+
+            if executionVM.isExecuting {
+                HStack(spacing: 6) {
+                    Spacer()
+                    Image(systemName: "bolt.slash.fill")
+                    Text("任务执行中，为保证手机性能，已自动停止刷新预览")
+                }
+                .font(.caption)
+                .foregroundColor(.orange)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.12))
+            }
 
             Divider()
 
@@ -172,12 +191,19 @@ struct ScreenPreviewView: View {
             }
         }
         .onAppear {
-            if isAutoRefreshing {
+            if isAutoRefreshing && !executionVM.isExecuting {
                 startAutoRefresh()
             }
         }
         .onDisappear {
             stopAutoRefresh()
+        }
+        .onChange(of: executionVM.isExecuting) { _, executing in
+            if executing {
+                stopAutoRefresh()
+            } else if isAutoRefreshing {
+                startAutoRefresh()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .singleStepDidComplete)) { _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
