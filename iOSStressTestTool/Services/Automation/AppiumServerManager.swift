@@ -153,7 +153,12 @@ actor AppiumServerManager {
         if HostEnvironment.developerDirectoryIsXcode() {
             environment["DEVELOPER_DIR"] = HostEnvironment.developerDirectory()
         }
-        environment["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + (environment["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin")
+        var path = "/opt/homebrew/bin:/usr/local/bin:" + (environment["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin")
+        if let nodeDir = HostEnvironment.nodeDirectory,
+           !path.split(separator: ":").map(String.init).contains(nodeDir) {
+            path = nodeDir + ":" + path
+        }
+        environment["PATH"] = path
         process.environment = environment
         process.standardOutput = handle
         process.standardError = handle

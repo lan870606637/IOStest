@@ -24,32 +24,14 @@ final class GoIOSClient {
 
     // MARK: - 工具发现
 
-    /// 候选路径：项目内置副本优先，其次是 Homebrew 安装的副本
+    /// 候选路径：App 运行时目录优先，其次是 Homebrew 安装的副本
     private nonisolated static var candidatePaths: [String] {
         var paths: [String] = []
-
-        // 项目内置副本：由当前源文件位置回溯到仓库根，避免硬编码绝对路径
-        if let repoRoot = Self.repositoryRoot {
-            paths.append(repoRoot + "/.tools/go-ios/ios")
-        }
+        paths.append(HostEnvironment.runtimeDirectory + "/go-ios/ios")
         paths.append("/opt/homebrew/bin/ios")
         paths.append("/usr/local/bin/ios")
         return paths
     }
-
-    /// 从本文件路径回溯仓库根目录（…/<repo>/iOSStressTestTool/Utils/GoIOSClient.swift）
-    private nonisolated static let repositoryRoot: String? = {
-        let thisFile = URL(fileURLWithPath: #filePath)
-        let root = thisFile
-            .deletingLastPathComponent()   // Utils
-            .deletingLastPathComponent()   // iOSStressTestTool
-            .deletingLastPathComponent()   // <repo>
-        let candidate = root.path
-        var isDir: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: candidate, isDirectory: &isDir),
-              isDir.boolValue else { return nil }
-        return candidate
-    }()
 
     private lazy var toolPath: String? = {
         for path in Self.candidatePaths where FileManager.default.isExecutableFile(atPath: path) {

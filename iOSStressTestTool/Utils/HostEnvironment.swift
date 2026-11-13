@@ -37,22 +37,15 @@ struct HostEnvironmentCheck: Identifiable {
 }
 
 enum HostEnvironment {
-    /// 仓库根目录（…/<repo>/iOSStressTestTool/Utils/HostEnvironment.swift）
-    nonisolated static let repositoryRoot: String? = {
-        let thisFile = URL(fileURLWithPath: #filePath)
-        let root = thisFile
-            .deletingLastPathComponent()   // Utils
-            .deletingLastPathComponent()   // iOSStressTestTool
-            .deletingLastPathComponent()   // <repo>
-        var isDir: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDir),
-              isDir.boolValue else { return nil }
-        return root.path
-    }()
-
     static var applicationSupportDirectory: String {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return base.appendingPathComponent("iOSStressTestTool", isDirectory: true).path
+    }
+
+    /// App 自己的运行时目录（Appium、driver、WDA 缓存、go-ios）。
+    /// 放在 Application Support，避免 App 访问桌面触发 macOS TCC 弹窗。
+    static var runtimeDirectory: String {
+        applicationSupportDirectory + "/runtime"
     }
 
     static var logsDirectory: String {
@@ -63,21 +56,14 @@ enum HostEnvironment {
         logsDirectory + "/appium-server.log"
     }
 
-    /// Appium 的 driver 安装目录。优先用仓库内置副本，便于本机开发。
+    /// Appium 的 driver 安装目录（Application Support 内，避免桌面权限）。
     static var appiumHome: String {
-        if let root = repositoryRoot {
-            let local = root + "/.tools/appium-home"
-            if FileManager.default.fileExists(atPath: local) { return local }
-        }
-        return applicationSupportDirectory + "/appium-home"
+        runtimeDirectory + "/appium-home"
     }
 
-    /// WDA 构建缓存目录。优先复用仓库内的缓存，冷启动能省 8–9 分钟。
+    /// WDA 构建缓存目录。
     static var derivedDataPath: String {
-        if let root = repositoryRoot {
-            return root + "/.tools/DerivedData"
-        }
-        return applicationSupportDirectory + "/WDA-DerivedData"
+        runtimeDirectory + "/WDA-DerivedData"
     }
 
     /// Appium 可执行文件候选路径。
@@ -87,9 +73,7 @@ enum HostEnvironment {
         if let override = ProcessInfo.processInfo.environment["APPIUM_BINARY"], !override.isEmpty {
             candidates.append(override)
         }
-        if let root = repositoryRoot {
-            candidates.append(root + "/.tools/appium/node_modules/.bin/appium")
-        }
+        candidates.append(runtimeDirectory + "/appium/node_modules/.bin/appium")
         candidates.append("/opt/homebrew/bin/appium")
         candidates.append("/usr/local/bin/appium")
 
@@ -129,6 +113,53 @@ enum HostEnvironment {
     static func xcuitestDriverInstalled() -> Bool {
         let package = appiumHome + "/node_modules/appium-xcuitest-driver/package.json"
         return FileManager.default.fileExists(atPath: package)
+    }
+
+    /// 查找 Node.js。Appium 的 CLI 是 `#!/usr/bin/env node`，PATH 里没有 node 就会
+    /// 报 `env: node: No such file or directory`。
+    static func nodeExecutable() -> String? {
+        let fm = FileManager.default
+        var candidates: [String] = []
+
+        if let override = ProcessInfo.processInfo.environment["NODE_BINARY"], !override.isEmpty {
+            candidates.append(override)
+        }
+        candidates.append("/opt/homebrew/bin/node")
+        candidates.append("/usr/local/bin/node")
+
+        let home = NSHomeDirectory()
+        let versionRoots = [
+            home + "/.workbuddy/binaries/node/versions",
+            home + "/.nvm/versions/node",
+            home + "/.fnm/node-versions",
+        ]
+        for root in versionRoots {
+            guard let versions = try? fm.contentsOfDirectory(atPath: root) else { continue }
+            for version in versions {
+                candidates.append(root + "/" + version + "/bin/node")
+                candidates.append(root + "/" + version + "/installation/bin/node")
+            }
+        }
+        candidates.append(home + "/.volta/bin/node")
+
+        for path in candidates where fm.isExecutableFile(atPath: path) {
+            return path
+        }
+
+        // 兜底：登录 shell 的 PATH（能覆盖 nvm/volta 等动态配置）
+        let result = ProcessRunner.shared.run("/bin/zsh",
+                                              arguments: ["-lc", "command -v node"],
+                                              timeout: 5)
+        let path = result.output
+        if result.isSuccess, !path.isEmpty, fm.isExecutableFile(atPath: path) {
+            return path
+        }
+        return nil
+    }
+
+    static var nodeDirectory: String? {
+        guard let node = nodeExecutable() else { return nil }
+        return URL(fileURLWithPath: node).deletingLastPathComponent().path
     }
 
     static func prepareRuntimeDirectories() throws {
@@ -192,6 +223,15 @@ enum HostEnvironment {
             status: driverOK ? .ok : .failed,
             detail: driverOK ? appiumHome : "未在 \(appiumHome) 找到 appium-xcuitest-driver",
             fix: driverOK ? nil : "APPIUM_HOME=\(appiumHome) appium driver install xcuitest"
+        ))
+
+        // 6. Node.js（Appium 启动必需）
+        let node = nodeExecutable()
+        result.append(HostEnvironmentCheck(
+            name: "Node.js (Appium)",
+            status: node != nil ? .ok : .failed,
+            detail: node ?? "未找到 node",
+            fix: node != nil ? nil : "安装 Node.js 20+，或设置 NODE_BINARY"
         ))
 
         // 6. 代码签名证书（真机必需）

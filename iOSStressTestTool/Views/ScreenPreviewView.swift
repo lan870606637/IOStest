@@ -108,7 +108,7 @@ struct ScreenPreviewView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .overlay {
                         if isCapturing {
-                            ProgressView("正在获取截图...")
+                            ProgressView("正在获取截图（首次需建立 WDA 会话）...")
                                 .padding(12)
                                 .background(.regularMaterial)
                                 .cornerRadius(8)
