@@ -44,7 +44,7 @@ struct RecordingView: View {
                                     Text(device.displayTitle)
                                 }
                             } else {
-                                Text("请在设备管理中选择设备")
+                                Text("请先在任务管理顶部选择已连接真机")
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -100,7 +100,7 @@ struct RecordingView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             instructionRow("1.", "选择要录制的设备")
                             instructionRow("2.", "点击「开始录制」")
-                            instructionRow("3.", "切换到「屏幕预览」标签页")
+                            instructionRow("3.", "在左侧「屏幕预览」画面上操作")
                             instructionRow("4.", "在预览画面上操作:")
                             instructionRow("  -", "单击 = 点击事件")
                             instructionRow("  -", "拖拽 = 滑动事件")

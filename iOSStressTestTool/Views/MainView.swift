@@ -11,8 +11,7 @@ struct MainView: View {
 
     enum SidebarTab: String, CaseIterable, Identifiable {
         case tasks = "任务管理"
-        case recording = "录制"
-        case screenPreview = "屏幕预览"
+        case recordPreview = "录制/预览"
         case reports = "测试报告"
         case settings = "设置"
 
@@ -21,8 +20,7 @@ struct MainView: View {
         var icon: String {
             switch self {
             case .tasks: return "list.bullet.clipboard"
-            case .recording: return "record.circle"
-            case .screenPreview: return "rectangle.on.rectangle"
+            case .recordPreview: return "rectangle.on.rectangle"
             case .reports: return "chart.bar.doc.horizontal"
             case .settings: return "gear"
             }
@@ -72,17 +70,21 @@ struct MainView: View {
                         deviceVM: deviceVM,
                         executionVM: executionVM
                     )
-                case .recording:
-                    RecordingView(
-                        recordingVM: recordingVM,
-                        deviceVM: deviceVM,
-                        taskVM: taskVM
-                    )
-                case .screenPreview:
-                    ScreenPreviewView(
-                        deviceVM: deviceVM,
-                        recordingVM: recordingVM
-                    )
+                case .recordPreview:
+                    HSplitView {
+                        ScreenPreviewView(
+                            deviceVM: deviceVM,
+                            recordingVM: recordingVM
+                        )
+                        .frame(minWidth: 420)
+
+                        RecordingView(
+                            recordingVM: recordingVM,
+                            deviceVM: deviceVM,
+                            taskVM: taskVM
+                        )
+                        .frame(minWidth: 420)
+                    }
                 case .reports:
                     ReportView()
                 case .settings:
@@ -91,7 +93,7 @@ struct MainView: View {
             }
             .frame(minWidth: 700, minHeight: 500)
         }
-        .frame(minWidth: 960, minHeight: 640)
+        .frame(minWidth: 1180, minHeight: 640)
         .onAppear {
             deviceVM.startPolling()
         }
