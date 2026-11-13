@@ -26,10 +26,26 @@ final class ScreenshotService: ObservableObject {
     // MARK: - 截图目录
 
     private var screenshotDirectory: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("iOSStressTestTool/screenshots")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let fm = FileManager.default
+        let configured = AppConfig.shared.screenshotSaveDir
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let dir: URL
+        if configured.hasPrefix("/") {
+            dir = URL(fileURLWithPath: configured, isDirectory: true)
+        } else {
+            let appSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            let sub = configured.isEmpty ? "screenshots" : configured
+            dir = appSupport.appendingPathComponent("iOSStressTestTool/\(sub)", isDirectory: true)
+        }
+
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
+    }
+
+    /// 当前截图保存目录（设置页/报告页展示、打开用）
+    var currentDirectoryPath: String {
+        screenshotDirectory.path
     }
 
     // MARK: - 截图获取

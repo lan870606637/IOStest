@@ -16,6 +16,13 @@ struct ReportView: View {
                     Text("测试报告")
                         .font(.headline)
                     Spacer()
+                    Button {
+                        NSWorkspace.shared.open(URL(fileURLWithPath: ScreenshotService.shared.currentDirectoryPath))
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    .help("打开截图保存目录")
+
                     Button(action: { reportGenerator.loadReports() }) {
                         Image(systemName: "arrow.clockwise")
                     }

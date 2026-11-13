@@ -73,6 +73,33 @@ struct SettingsView: View {
                     .padding(8)
                 }
 
+                // 截图设置
+                GroupBox("截图设置") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Text("保存目录")
+                                .frame(width: 140, alignment: .trailing)
+                            Text(ScreenshotService.shared.currentDirectoryPath)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .textSelection(.enabled)
+                            Spacer()
+                            Button("选择...") { selectScreenshotDirectory() }
+                            Button("打开") { openScreenshotDirectory() }
+                            Button("恢复默认") {
+                                config.screenshotSaveDir = "screenshots"
+                                config.save()
+                            }
+                        }
+                        Text("截图事件和手动截图都会保存到这个目录。")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 148)
+                    }
+                    .padding(8)
+                }
+
                 // Xcode 设置
                 GroupBox("Xcode 设置") {
                     VStack(alignment: .leading, spacing: 12) {
@@ -360,6 +387,22 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private func selectScreenshotDirectory() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "选择截图保存目录"
+        if panel.runModal() == .OK, let url = panel.url {
+            config.screenshotSaveDir = url.path
+            config.save()
+        }
+    }
+
+    private func openScreenshotDirectory() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: ScreenshotService.shared.currentDirectoryPath))
     }
 
     private func selectXcodeProject() {
