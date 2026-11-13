@@ -34,6 +34,15 @@ final class DeviceViewModel: ObservableObject {
         devices.filter { $0.status == .connected }.count
     }
 
+    /// 只保留已连接真机，任务页只展示这些设备。
+    var connectedPhysicalDevices: [DeviceInfo] {
+        devices.filter { $0.deviceType == .physical && $0.status == .connected }
+    }
+
+    var connectedPhysicalDeviceCount: Int {
+        connectedPhysicalDevices.count
+    }
+
     init() {
         // 同步设备服务的数据
         deviceService.$devices
@@ -65,6 +74,11 @@ final class DeviceViewModel: ObservableObject {
         selectedDevice = device
         deviceService.selectedDevice = device
         logger.info("选中设备: \(device.displayTitle)")
+    }
+
+    func clearSelection() {
+        selectedDevice = nil
+        deviceService.selectedDevice = nil
     }
 
     func bootSimulator(_ device: DeviceInfo) async {

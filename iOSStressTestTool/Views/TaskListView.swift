@@ -19,7 +19,10 @@ struct TaskListView: View {
     @State private var editTaskLoopCount = 1
 
     var body: some View {
-        HSplitView {
+        VStack(spacing: 0) {
+            physicalDeviceBar
+            Divider()
+            HSplitView {
             // 左侧: 任务列表
             VStack(spacing: 0) {
                 // 搜索和操作栏
@@ -85,6 +88,108 @@ struct TaskListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        }
+        .onAppear { selectConnectedPhysicalIfNeeded() }
+        .onChange(of: deviceVM.devices) { _, _ in selectConnectedPhysicalIfNeeded() }
+    }
+
+    // MARK: - 真机选择栏
+
+    private var connectedPhysicalDevices: [DeviceInfo] {
+        deviceVM.connectedPhysicalDevices
+    }
+
+    private var canExecute: Bool {
+        guard let device = deviceVM.selectedDevice else { return false }
+        return device.deviceType == .physical && device.status == .connected
+    }
+
+    private var physicalDeviceBar: some View {
+        HStack(spacing: 12) {
+            Label("真机", systemImage: "iphone")
+                .font(.headline)
+
+            if connectedPhysicalDevices.isEmpty {
+                Text("未连接真机，请用 USB 连接 iPhone，信任电脑并开启开发者模式")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            } else if connectedPhysicalDevices.count == 1,
+                      let device = connectedPhysicalDevices.first {
+                Circle()
+                    .fill(.green)
+                    .frame(width: 8, height: 8)
+                Text("\(device.name) · \(device.osVersion)")
+            } else {
+                Picker("", selection: Binding(
+                    get: { selectedPhysicalUDID },
+                    set: { udid in
+                        if let device = connectedPhysicalDevices.first(where: { $0.udid == udid }) {
+                            deviceVM.selectDevice(device)
+                        }
+                    }
+                )) {
+                    ForEach(connectedPhysicalDevices) { device in
+                        Text("\(device.name) · \(device.osVersion)").tag(device.udid)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 260)
+
+                Circle()
+                    .fill(.green)
+                    .frame(width: 8, height: 8)
+                Text("已连接 \(connectedPhysicalDevices.count) 台")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                Task { await deviceVM.refreshDevices() }
+            } label: {
+                if deviceVM.isRefreshing {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+            .help("刷新真机列表")
+            .disabled(deviceVM.isRefreshing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .controlBackgroundColor))
+    }
+
+    private var selectedPhysicalUDID: String {
+        if let selected = deviceVM.selectedDevice,
+           selected.deviceType == .physical,
+           connectedPhysicalDevices.contains(where: { $0.udid == selected.udid }) {
+            return selected.udid
+        }
+        return connectedPhysicalDevices.first?.udid ?? ""
+    }
+
+    private func selectConnectedPhysicalIfNeeded() {
+        let devices = connectedPhysicalDevices
+        guard !devices.isEmpty else {
+            if let selected = deviceVM.selectedDevice,
+               selected.deviceType != .physical || selected.status != .connected {
+                deviceVM.clearSelection()
+            }
+            return
+        }
+
+        if let selected = deviceVM.selectedDevice,
+           selected.deviceType == .physical,
+           selected.status == .connected,
+           devices.contains(where: { $0.udid == selected.udid }) {
+            return
+        }
+
+        deviceVM.selectDevice(devices[0])
     }
 
     // MARK: - 任务详情
@@ -119,7 +224,7 @@ struct TaskListView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
-                .disabled(executionVM.isExecuting || deviceVM.selectedDevice == nil)
+                .disabled(executionVM.isExecuting || !canExecute)
             }
             .padding()
             .background(Color(nsColor: .controlBackgroundColor))
@@ -322,7 +427,9 @@ struct TaskListView: View {
     }
 
     private func startExecution(_ task: TestTask) {
-        guard let device = deviceVM.selectedDevice else { return }
+        guard let device = deviceVM.selectedDevice,
+              device.deviceType == .physical,
+              device.status == .connected else { return }
         executionVM.executeTask(task, deviceUDID: device.udid)
     }
 

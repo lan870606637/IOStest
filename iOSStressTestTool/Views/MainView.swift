@@ -11,7 +11,6 @@ struct MainView: View {
 
     enum SidebarTab: String, CaseIterable, Identifiable {
         case tasks = "任务管理"
-        case devices = "设备管理"
         case recording = "录制"
         case screenPreview = "屏幕预览"
         case reports = "测试报告"
@@ -22,7 +21,6 @@ struct MainView: View {
         var icon: String {
             switch self {
             case .tasks: return "list.bullet.clipboard"
-            case .devices: return "iphone"
             case .recording: return "record.circle"
             case .screenPreview: return "rectangle.on.rectangle"
             case .reports: return "chart.bar.doc.horizontal"
@@ -47,9 +45,9 @@ struct MainView: View {
                 Divider()
                 HStack {
                     Circle()
-                        .fill(deviceVM.connectedDeviceCount > 0 ? .green : .red)
+                        .fill(deviceVM.connectedPhysicalDeviceCount > 0 ? .green : .red)
                         .frame(width: 8, height: 8)
-                    Text("\(deviceVM.connectedDeviceCount) 台设备")
+                    Text("\(deviceVM.connectedPhysicalDeviceCount) 台真机")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -74,8 +72,6 @@ struct MainView: View {
                         deviceVM: deviceVM,
                         executionVM: executionVM
                     )
-                case .devices:
-                    DeviceManagerView(deviceVM: deviceVM)
                 case .recording:
                     RecordingView(
                         recordingVM: recordingVM,
