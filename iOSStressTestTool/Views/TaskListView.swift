@@ -90,7 +90,7 @@ struct TaskListView: View {
             }
 
             ScreenPreviewView(deviceVM: deviceVM, recordingVM: recordingVM, executionVM: executionVM)
-                .frame(minWidth: 360)
+                .frame(minWidth: 480, idealWidth: 520)
         }
         }
         .onAppear { selectConnectedPhysicalIfNeeded() }

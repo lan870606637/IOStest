@@ -82,9 +82,11 @@ struct ScreenPreviewView: View {
                 // 设备屏幕预览
                 GeometryReader { geometry in
                     ZStack {
+                        Color.clear
+
                         if let image = previewImage, let device = deviceVM.selectedDevice {
                             let aspect = CGFloat(device.screenWidth) / CGFloat(device.screenHeight)
-                            let previewWidth = min(geometry.size.width * 0.7, geometry.size.height * aspect)
+                            let previewWidth = min(geometry.size.width * 0.92, geometry.size.height * aspect)
                             let previewHeight = previewWidth / aspect
                             Image(nsImage: image)
                                 .resizable()
@@ -128,7 +130,7 @@ struct ScreenPreviewView: View {
                             }
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                     .overlay {
                         if isCapturing && (previewImage == nil || !isAutoRefreshing) {
                             ProgressView(previewImage == nil ? "正在建立 WDA 会话并获取截图..." : "正在获取截图...")
@@ -186,7 +188,7 @@ struct ScreenPreviewView: View {
 
                     Spacer()
                 }
-                .frame(width: 200)
+                .frame(width: 170)
                 .padding()
             }
         }

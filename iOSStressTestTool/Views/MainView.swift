@@ -95,7 +95,7 @@ struct MainView: View {
             }
             .frame(minWidth: 700, minHeight: 500)
         }
-        .frame(minWidth: 1180, minHeight: 640)
+        .frame(minWidth: 1320, minHeight: 680)
         .onAppear {
             deviceVM.startPolling()
         }
