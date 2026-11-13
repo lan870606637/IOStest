@@ -46,7 +46,6 @@
 		A10052 /* EventEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10052; };
 		A10053 /* DeviceManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10053; };
 		A10054 /* ScreenPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10054; };
-		A10055 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10055; };
 		A10056 /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10056; };
 		A10057 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10057; };
 
@@ -129,7 +128,6 @@
 		B10052 /* EventEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditorView.swift; sourceTree = "<group>"; };
 		B10053 /* DeviceManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceManagerView.swift; sourceTree = "<group>"; };
 		B10054 /* ScreenPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenPreviewView.swift; sourceTree = "<group>"; };
-		B10055 /* RecordingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingView.swift; sourceTree = "<group>"; };
 		B10056 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
 		B10057 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 
@@ -296,7 +294,6 @@
 				B10052 /* EventEditorView.swift */,
 				B10053 /* DeviceManagerView.swift */,
 				B10054 /* ScreenPreviewView.swift */,
-				B10055 /* RecordingView.swift */,
 				B10056 /* ReportView.swift */,
 				B10057 /* SettingsView.swift */,
 				B10097 /* ElementInspectorView.swift */,
@@ -498,7 +495,6 @@
 				A10052 /* EventEditorView.swift in Sources */,
 				A10053 /* DeviceManagerView.swift in Sources */,
 				A10054 /* ScreenPreviewView.swift in Sources */,
-				A10055 /* RecordingView.swift in Sources */,
 				A10056 /* ReportView.swift in Sources */,
 				A10057 /* SettingsView.swift in Sources */,
 				A10090 /* DeviceSessionManager.swift in Sources */,

@@ -96,6 +96,18 @@ final class TaskViewModel: ObservableObject {
         isModified = true
     }
 
+    /// 清空某个任务（分组）里的全部事件。用于录错/跑完后重来。
+    func clearEvents(of taskId: UUID) {
+        guard let index = tasks.firstIndex(where: { $0.id == taskId }) else { return }
+        guard !tasks[index].events.isEmpty else { return }
+        let removed = tasks[index].events.count
+        tasks[index].events.removeAll()
+        tasks[index].updatedAt = Date()
+        selectedTask = tasks[index]
+        isModified = true
+        logger.info("清空任务「\(tasks[index].name) · \(tasks[index].group)」的 \(removed) 条事件")
+    }
+
     func removeEvent(from taskId: UUID, at eventIndex: Int) {
         guard let index = tasks.firstIndex(where: { $0.id == taskId }),
               eventIndex < tasks[index].events.count else { return }

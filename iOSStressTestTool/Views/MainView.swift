@@ -11,7 +11,6 @@ struct MainView: View {
 
     enum SidebarTab: String, CaseIterable, Identifiable {
         case tasks = "任务管理"
-        case recordPreview = "录制/预览"
         case reports = "测试报告"
         case settings = "设置"
 
@@ -20,7 +19,6 @@ struct MainView: View {
         var icon: String {
             switch self {
             case .tasks: return "list.bullet.clipboard"
-            case .recordPreview: return "rectangle.on.rectangle"
             case .reports: return "chart.bar.doc.horizontal"
             case .settings: return "gear"
             }
@@ -71,22 +69,6 @@ struct MainView: View {
                         executionVM: executionVM,
                         recordingVM: recordingVM
                     )
-                case .recordPreview:
-                    HSplitView {
-                        ScreenPreviewView(
-                            deviceVM: deviceVM,
-                            recordingVM: recordingVM,
-                            executionVM: executionVM
-                        )
-                        .frame(minWidth: 420)
-
-                        RecordingView(
-                            recordingVM: recordingVM,
-                            deviceVM: deviceVM,
-                            taskVM: taskVM
-                        )
-                        .frame(minWidth: 420)
-                    }
                 case .reports:
                     ReportView()
                 case .settings:

@@ -284,53 +284,10 @@ final class RecordingService: ObservableObject {
         }
         logger.debug("录制事件: \(event.description)")
 
-        // 同步执行到设备 (实时回放)
-        if let udid = recordingDeviceUDID {
-            Task {
-                await executeRecordedEvent(event, deviceUDID: udid)
-            }
-        }
-    }
-
-    /// 录制时实时执行到设备
-    private func executeRecordedEvent(_ event: RecordedRawEvent, deviceUDID: String) async {
-        switch event.type {
-        case .click:
-            if let x = event.x, let y = event.y {
-                _ = await deviceService.tap(udid: deviceUDID, x: x, y: y)
-            }
-        case .doubleClick:
-            if let x = event.x, let y = event.y {
-                _ = await deviceService.tap(udid: deviceUDID, x: x, y: y)
-                try? await Task.sleep(nanoseconds: 100_000_000)
-                _ = await deviceService.tap(udid: deviceUDID, x: x, y: y)
-            }
-        case .longPress:
-            if let x = event.x, let y = event.y {
-                _ = await deviceService.longPress(udid: deviceUDID, x: x, y: y, duration: event.duration ?? 1.0)
-            }
-        case .swipe:
-            if let sx = event.startX, let sy = event.startY,
-               let ex = event.endX, let ey = event.endY {
-                _ = await deviceService.swipe(
-                    udid: deviceUDID,
-                    startX: sx, startY: sy, endX: ex, endY: ey,
-                    duration: event.duration ?? 0.5
-                )
-            }
-        case .homeButton:
-            _ = await deviceService.pressHome(udid: deviceUDID)
-        case .volumeUp:
-            _ = await deviceService.pressVolumeUp(udid: deviceUDID)
-        case .volumeDown:
-            _ = await deviceService.pressVolumeDown(udid: deviceUDID)
-        case .lockScreen:
-            _ = await deviceService.lockScreen(udid: deviceUDID)
-        case .shake:
-            _ = await deviceService.shake(udid: deviceUDID)
-        default:
-            break
-        }
+        // ⚠ 这里**不要**再"实时回放"一次。
+        // 预览里的手势本来就会发给设备（ScreenPreviewView.previewTap/Swipe），
+        // 录制时再执行一次等于每个点击都点两下 —— 之前的实现就是这样，只是录制页
+        // 用得少没被发现。录制只负责"记下来并追加到任务"，执行交给预览自己做。
     }
 
     /// 格式化录制时长
