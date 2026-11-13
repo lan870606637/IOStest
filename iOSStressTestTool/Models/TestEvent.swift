@@ -8,6 +8,7 @@ enum EventType: String, Codable, CaseIterable, Identifiable {
     case swipe = "swipe"
     case imageRecognitionClick = "image_recognition_click"
     case ocrTextClick = "ocr_text_click"
+    case popupButton = "popup_button"
     case screenshot = "screenshot"
     case compareScreenshot = "compare_screenshot"
     case killApp = "kill_app"
@@ -31,6 +32,7 @@ enum EventType: String, Codable, CaseIterable, Identifiable {
         case .swipe: return "滑动"
         case .imageRecognitionClick: return "图像识别点击"
         case .ocrTextClick: return "OCR文字点击"
+        case .popupButton: return "弹窗按钮"
         case .screenshot: return "截图"
         case .compareScreenshot: return "对比截图"
         case .killApp: return "终止应用"
@@ -132,6 +134,11 @@ struct TestEvent: Identifiable, Codable {
 
     // OCR 参数
     var targetText: String?
+
+    // 弹窗按钮参数（可选，兼容旧 JSON）
+    var popupButtonText: String?
+    var popupTimeout: Double?
+    var popupInterval: Double?
 
     // 截图参数
     var screenshotType: ScreenshotType = .none

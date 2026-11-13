@@ -160,6 +160,8 @@ final class EventExecutor: ObservableObject {
             result = await executeImageRecognitionClick(event, deviceUDID: deviceUDID)
         case .ocrTextClick:
             result = await executeOCRTextClick(event, deviceUDID: deviceUDID)
+        case .popupButton:
+            result = await executePopupButton(event, deviceUDID: deviceUDID)
         case .screenshot:
             result = await executeScreenshot(event, deviceUDID: deviceUDID)
         case .compareScreenshot:
@@ -454,6 +456,64 @@ final class EventExecutor: ObservableObject {
             return (.success, nil)
         }
         return (.failed, "OCR 识别后点击失败")
+    }
+
+    /// 按文案循环查找并点击弹窗按钮：App 内控件 → 系统弹窗，直到超时。
+    private func executePopupButton(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {
+        let rawText = event.popupButtonText ?? event.targetText ?? ""
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            return (.failed, "未指定弹窗按钮文案")
+        }
+
+        let timeout = max(event.popupTimeout ?? 15.0, 0.5)
+        let interval = max(event.popupInterval ?? 0.5, 0.1)
+        let deadline = Date().addingTimeInterval(timeout)
+        var lastError: String?
+
+        do {
+            try await backend.ensureSession(udid: deviceUDID, bundleId: nil, platformVersion: nil)
+        } catch {
+            return (.failed, "无法建立自动化会话: \(error.localizedDescription)")
+        }
+
+        let escaped = text
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let locator = Locator(strategy: .predicate,
+                              value: "label == \"\(escaped)\" OR name == \"\(escaped)\"",
+                              timeout: interval)
+
+        while Date() < deadline {
+            // 1. App 内弹窗按钮
+            if let element = try? await backend.findElement(udid: deviceUDID, locator: locator) {
+                do {
+                    try await backend.click(udid: deviceUDID, element: element)
+                    recordStrategy(event, "弹窗按钮 \(text)（App 内）")
+                    return (.success, nil)
+                } catch {
+                    lastError = error.localizedDescription
+                }
+            }
+
+            // 2. 系统弹窗（SpringBoard / 权限弹窗）
+            do {
+                let buttons = try await backend.alertButtons(udid: deviceUDID)
+                if let matched = buttons.first(where: { $0 == text })
+                    ?? buttons.first(where: { $0.contains(text) }) {
+                    try await backend.acceptAlert(udid: deviceUDID, buttonLabel: matched)
+                    recordStrategy(event, "弹窗按钮 \(matched)（系统弹窗）")
+                    return (.success, nil)
+                }
+            } catch {
+                lastError = error.localizedDescription
+            }
+
+            try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+        }
+
+        let suffix = lastError.map { "，最后错误: \($0)" } ?? ""
+        return (.failed, "弹窗按钮 '\(text)' 在 \(String(format: "%.1f", timeout)) 秒内未出现\(suffix)")
     }
 
     private func executeScreenshot(_ event: TestEvent, deviceUDID: String) async -> (EventStatus, String?) {

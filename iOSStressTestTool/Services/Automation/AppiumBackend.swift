@@ -91,6 +91,31 @@ final class AppiumBackend: AutomationBackend {
                                      args: [["name": button.appiumName]])
     }
 
+    func alertButtons(udid: String) async throws -> [String] {
+        let (client, sessionId) = try await context(udid)
+        let value = try await client.execute(sessionId: sessionId,
+                                             script: "mobile: alert",
+                                             args: [["action": "getButtons"]])
+        if let buttons = value as? [String] {
+            return buttons
+        }
+        if let objects = value as? [[String: Any]] {
+            return objects.compactMap { $0["name"] as? String ?? $0["label"] as? String }
+        }
+        return []
+    }
+
+    func acceptAlert(udid: String, buttonLabel: String?) async throws {
+        let (client, sessionId) = try await context(udid)
+        var payload: [String: Any] = ["action": "accept"]
+        if let buttonLabel, !buttonLabel.isEmpty {
+            payload["buttonLabel"] = buttonLabel
+        }
+        _ = try await client.execute(sessionId: sessionId,
+                                     script: "mobile: alert",
+                                     args: [payload])
+    }
+
     func launchApp(udid: String, bundleId: String) async throws {
         let (client, sessionId) = try await context(udid)
         _ = try await client.execute(sessionId: sessionId,

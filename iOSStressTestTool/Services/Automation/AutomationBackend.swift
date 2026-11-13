@@ -116,6 +116,11 @@ protocol AutomationBackend: AnyObject {
     func typeText(udid: String, text: String) async throws
     func pressButton(udid: String, button: HardwareButton) async throws
 
+    /// 系统弹窗：取按钮文案列表。
+    func alertButtons(udid: String) async throws -> [String]
+    /// 系统弹窗：按文案接受（点击）按钮；buttonLabel 为 nil 时点默认按钮。
+    func acceptAlert(udid: String, buttonLabel: String?) async throws
+
     func launchApp(udid: String, bundleId: String) async throws
     func terminateApp(udid: String, bundleId: String) async throws
 

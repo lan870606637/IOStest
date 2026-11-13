@@ -76,6 +76,8 @@ struct EventEditorView: View {
                         imageRecognitionSection
                     case .ocrTextClick:
                         ocrSection
+                    case .popupButton:
+                        popupSection
                     case .killApp, .launchApp:
                         appManagementSection
                     case .screenshot, .compareScreenshot:
@@ -233,6 +235,49 @@ struct EventEditorView: View {
                     ))
                     .textFieldStyle(.roundedBorder)
                 }
+            }
+            .padding(8)
+        }
+    }
+
+    // MARK: - 弹窗按钮参数
+
+    private var popupSection: some View {
+        GroupBox("弹窗按钮参数") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("按钮文案")
+                        .frame(width: 80, alignment: .trailing)
+                    TextField("例如 允许", text: Binding(
+                        get: { event.popupButtonText ?? "" },
+                        set: { event.popupButtonText = $0.isEmpty ? nil : $0 }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                }
+
+                HStack {
+                    Text("超时(秒)")
+                        .frame(width: 80, alignment: .trailing)
+                    TextField("", value: Binding(
+                        get: { event.popupTimeout ?? 15 },
+                        set: { event.popupTimeout = $0 }
+                    ), format: .number)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 80)
+
+                    Text("间隔(秒)")
+                        .frame(width: 80, alignment: .trailing)
+                    TextField("", value: Binding(
+                        get: { event.popupInterval ?? 0.5 },
+                        set: { event.popupInterval = $0 }
+                    ), format: .number)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 80)
+                }
+
+                Text("循环查找 App 内控件和系统弹窗，找到文案对应按钮后点击；超时未出现则失败。")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             .padding(8)
         }

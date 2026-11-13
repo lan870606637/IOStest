@@ -7,6 +7,7 @@ struct ScreenPreviewView: View {
 
     @StateObject private var screenshotService = ScreenshotService.shared
     private let backend = AppiumBackend()
+    @State private var isCapturing = false
 
     @State private var previewImage: NSImage?
     @State private var isAutoRefreshing = false
@@ -79,9 +80,9 @@ struct ScreenPreviewView: View {
 
                                 if let device = deviceVM.selectedDevice {
                                     if device.deviceType == .physical, captureFailed {
-                                        Text("真机截图需要 go-ios 或 libimobiledevice")
+                                        Text("真机截图失败")
                                             .foregroundColor(.secondary)
-                                        Text("go-ios 已内置(.tools/go-ios/ios)；缺失时执行: brew install go-ios")
+                                        Text("优先走 Appium/WDA；也可用 go-ios 或 libimobiledevice")
                                             .font(.caption)
                                             .foregroundColor(.orange)
                                         HStack(spacing: 12) {
@@ -105,6 +106,14 @@ struct ScreenPreviewView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay {
+                        if isCapturing {
+                            ProgressView("正在获取截图...")
+                                .padding(12)
+                                .background(.regularMaterial)
+                                .cornerRadius(8)
+                        }
+                    }
                 }
 
                 Divider()
@@ -391,15 +400,39 @@ struct ScreenPreviewView: View {
     private func captureScreenshot() {
         guard let device = deviceVM.selectedDevice else { return }
         Task {
+            await MainActor.run { isCapturing = true }
             screenshotService.invalidateCache(for: device.udid)
-            if let image = await screenshotService.captureScreenshot(deviceUDID: device.udid, deviceType: device.deviceType) {
-                await MainActor.run {
+
+            var image: NSImage?
+            if device.deviceType == .physical {
+                image = await captureWithAppium(device: device)
+            }
+            if image == nil {
+                image = await screenshotService.captureScreenshot(deviceUDID: device.udid,
+                                                                  deviceType: device.deviceType)
+            }
+
+            await MainActor.run {
+                isCapturing = false
+                if let image {
                     previewImage = image
                     captureFailed = false
+                } else {
+                    captureFailed = true
                 }
-            } else {
-                await MainActor.run { captureFailed = true }
             }
+        }
+    }
+
+    /// 真机优先走 Appium/WDA 截图（iOS 17+ 的 go-ios screenshot 需要隧道，容易失败）。
+    private func captureWithAppium(device: DeviceInfo) async -> NSImage? {
+        do {
+            try await backend.ensureSession(udid: device.udid, bundleId: nil, platformVersion: nil)
+            let data = try await backend.screenshot(udid: device.udid)
+            return NSImage(data: data)
+        } catch {
+            Logger.shared.warning("Appium 预览截图失败: \(error.localizedDescription)")
+            return nil
         }
     }
 
