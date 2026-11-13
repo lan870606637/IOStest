@@ -34,6 +34,8 @@ final class EventExecutor: ObservableObject {
     private let backend: AutomationBackend = AppiumBackend()
     /// 记录每个事件实际使用的策略（按事件 id；@MainActor 串行访问）
     private var strategyTrace: [UUID: String] = [:]
+    /// 记录截图事件保存的文件路径
+    private var screenshotTrace: [UUID: String] = [:]
 
     var onProgress: ((ExecutionProgress) -> Void)?
     var onEventComplete: ((TestEvent, EventStatus, String?) -> Void)?
@@ -190,6 +192,7 @@ final class EventExecutor: ObservableObject {
 
         reportGenerator.endEvent(status: result.0,
                                  errorMessage: result.1,
+                                 screenshotPath: takeScreenshotPath(event),
                                  strategy: takeStrategy(event))
         return result
     }
@@ -202,6 +205,14 @@ final class EventExecutor: ObservableObject {
 
     private func takeStrategy(_ event: TestEvent) -> String? {
         strategyTrace.removeValue(forKey: event.id)
+    }
+
+    private func recordScreenshotPath(_ event: TestEvent, _ path: String) {
+        screenshotTrace[event.id] = path
+    }
+
+    private func takeScreenshotPath(_ event: TestEvent) -> String? {
+        screenshotTrace.removeValue(forKey: event.id)
     }
 
     /// 轮询等待控件出现；超时返回 nil，会话错误继续抛出。
@@ -525,7 +536,9 @@ final class EventExecutor: ObservableObject {
             return (.failed, "截图失败")
         }
         let name = event.remark.isEmpty ? "screenshot" : event.remark
-        let _ = screenshotService.saveScreenshot(screenshot, name: name)
+        if let path = screenshotService.saveScreenshot(screenshot, name: name) {
+            recordScreenshotPath(event, path)
+        }
         return (.success, nil)
     }
 

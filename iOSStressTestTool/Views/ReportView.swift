@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: - 报告视图
 struct ReportView: View {
@@ -162,6 +163,15 @@ struct ReportView: View {
                                                 .font(.caption2)
                                                 .foregroundColor(.blue)
                                                 .lineLimit(1)
+                                        }
+                                        if let path = event.screenshotPath {
+                                            Button {
+                                                NSWorkspace.shared.open(URL(fileURLWithPath: path))
+                                            } label: {
+                                                Image(systemName: "photo")
+                                            }
+                                            .buttonStyle(.borderless)
+                                            .help("打开截图: \(path)")
                                         }
                                         Spacer()
                                         if let dur = event.duration {
