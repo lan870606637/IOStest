@@ -11,7 +11,7 @@ struct ScreenPreviewView: View {
     @State private var isCapturing = false
 
     @State private var previewImage: NSImage?
-    @State private var isAutoRefreshing = false
+    @State private var isAutoRefreshing = true
     @State private var refreshTimer: Timer?
     @State private var lastTapCoordinate: String = ""
     @State private var refreshInterval: Double = 1.0
@@ -169,6 +169,11 @@ struct ScreenPreviewView: View {
                 }
                 .frame(width: 200)
                 .padding()
+            }
+        }
+        .onAppear {
+            if isAutoRefreshing {
+                startAutoRefresh()
             }
         }
         .onDisappear {
